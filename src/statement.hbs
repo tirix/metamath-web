@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+	<body>
+		<h1>Metamath Proof Explorer</h1>
+		<hr />
+		<h2>Theorem {{label}}</h2>
+		{{comment}}
+		<hr />
+		<h3>Proof of theorem {{label}}</h3>
+		<table>
+			<tr>
+				<th>Step</th>
+				<th>Hyp</th>
+				<th>Ref</th>
+				<th>Expression</th>
+			</tr>
+			{{#each steps}}
+				<tr>
+					<td>{{id}}</td>
+					<td>
+						{{#each hyps }}{{this}}{{#if (not @last)}}, {{/if}}{{/each}}
+					</td>
+					<td><a href="{{label}}">{{label}}</a></td>
+					<td><pre>{{expr}}</pre></td>
+				</tr>
+			{{/each}}
+		</table>
+	</body>
+</html>

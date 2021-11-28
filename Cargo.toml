@@ -1,0 +1,19 @@
+[package]
+authors = ["Thierry Arnoux <dwheeler@dwheeler.com>"]
+license = "MIT"
+name = "metamath-web"
+readme = "README.md"
+version = "0.0.1"
+description = "A web server for Metamath pages"
+repository = "https://github.com/tirix/metamath-web"
+edition = "2018"
+
+[dependencies]
+metamath-knife = { path = "../metamath-knife" }
+handlebars = "4.1.5"
+warp = "0.3.2"
+log = "0.4.14"
+tokio = { version = "1.14", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+clap = "2.33.3"
+regex = "0.1.71"
