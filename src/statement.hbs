@@ -18,10 +18,10 @@
 				<tr>
 					<td>{{id}}</td>
 					<td>
-						{{#each hyps }}{{this}}{{#if (not @last)}}, {{/if}}{{/each}}
+						{{#each hyps }}<a href="#{{this}}">{{this}}</a>{{#if (not @last)}}, {{/if}}{{/each}}
 					</td>
 					<td><a href="{{label}}">{{label}}</a></td>
-					<td><pre>{{expr}}</pre></td>
+					<td><a name="{{id}}"></a><pre>{{expr}}</pre></td>
 				</tr>
 			{{/each}}
 		</table>
