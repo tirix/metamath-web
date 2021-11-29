@@ -27,20 +27,25 @@ pub struct Renderer {
     templates: Arc<Handlebars<'static>>,
     db: Database,
     link_regex: Regex,
+    bibl_regex: Regex,
+    bib_file: String,
 }
 
 impl Renderer {
-    pub(crate) fn new(db: Database) -> Renderer {
+    pub(crate) fn new(db: Database, bib_file: Option<String>) -> Renderer {
         let mut templates = Handlebars::new();
         templates.register_escape_fn(handlebars::no_escape);
         templates
             .register_template_string("statement", include_str!("statement.hbs"))
             .expect("Unable to parse statement template.");
         let link_regex = Regex::new(r"\~ ([^ ]+) ").unwrap();
+        let bibl_regex = Regex::new(r"\[([^ ]+)\]").unwrap();
         Renderer {
             templates: Arc::new(templates),
             db,
             link_regex,
+            bibl_regex,
+            bib_file: bib_file.unwrap_or("".to_string()),
         }
     }
 
@@ -54,15 +59,22 @@ impl Renderer {
             span.end -= 3;
             let comment = String::from_utf8_lossy(span.as_ref(&cmt.segment().segment.buffer))
                 .replace("\n\n", "</p>\n<p>");
-            self.link_regex
-                .replace_all(comment.as_str(), |caps: &Captures| {
-                    format!(
-                        "<a href=\"{}\">{}</a>",
-                        caps.get(1).map_or("#", |m| m.as_str()),
-                        caps.get(1).map_or("-", |m| m.as_str())
-                    )
-                })
-                .to_string()
+            let comment = self.link_regex.replace_all(&comment, |caps: &Captures| {
+                format!(
+                    "<a href=\"{}\">{}</a>",
+                    caps.get(1).map_or("#", |m| m.as_str()),
+                    caps.get(1).map_or("-", |m| m.as_str())
+                )
+            });
+            let comment = self.bibl_regex.replace_all(&comment, |caps: &Captures| {
+                format!(
+                    "<a href=\"{}#{}\">{}</a>",
+                    self.bib_file,
+                    caps.get(1).map_or("", |m| m.as_str()),
+                    caps.get(1).map_or("", |m| m.as_str())
+                )
+            });
+            comment.to_string()
         } else {
             "(This statement does not have an associated comment)".to_string()
         };

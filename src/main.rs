@@ -4,11 +4,13 @@ use crate::statement::Renderer;
 use clap::crate_version;
 use clap::App as ClapApp;
 use clap::Arg;
+use clap::ArgMatches;
 use metamath_knife::database::DbOptions;
 use metamath_knife::Database;
 use std::convert::Infallible;
+use std::path::Path;
 use std::str::FromStr;
-use warp::http::StatusCode;
+use warp::reject::Rejection;
 use warp::Filter;
 
 fn positive_integer(val: String) -> Result<(), String> {
@@ -17,8 +19,8 @@ fn positive_integer(val: String) -> Result<(), String> {
         .map_err(|e| format!("{}", e))
 }
 
-fn build_db() -> Database {
-    let args = ClapApp::new("metamath-web")
+fn command_args<'a>() -> ArgMatches<'a> {
+    ClapApp::new("metamath-web")
         .version(crate_version!())
         .about("A web server providing Metamath pages")
         .arg(
@@ -47,7 +49,17 @@ fn build_db() -> Database {
                 .takes_value(true)
                 .validator(positive_integer),
         )
-        .get_matches();
+        .arg(
+            Arg::with_name("bib_file")
+                .help("Index file, which includes the bibliography")
+                .long("bib")
+                .short("b")
+                .takes_value(true),
+        )
+        .get_matches()
+}
+
+fn build_db(args: &ArgMatches<'_>) -> Database {
     let job_count =
         usize::from_str(args.value_of("jobs").unwrap_or("8")).expect("validator should check this");
     let options = DbOptions {
@@ -75,23 +87,28 @@ fn with_renderer(
     warp::any().map(move || renderer.clone())
 }
 
-pub async fn get_theorem(
-    label: String,
-    renderer: Renderer,
-) -> Result<impl warp::Reply, Infallible> {
-    Ok(match renderer.render_statement(label) {
-        Some(html) => warp::reply::html(html),
-        None => warp::reply::html(StatusCode::NOT_FOUND.to_string()),
-    })
+pub async fn get_theorem(label: String, renderer: Renderer) -> Result<impl warp::Reply, Rejection> {
+    let label = label.replace(".html", "");
+    match renderer.render_statement(label) {
+        Some(html) => Ok(warp::reply::html(html)),
+        None => Err(warp::reject::not_found()),
+    }
 }
 
 #[tokio::main]
 async fn main() {
-    let db = build_db();
-    let renderer = Renderer::new(db);
+    let args = command_args();
+    let db = build_db(&args);
+    let path = Path::new(args.value_of("database").unwrap())
+        .parent()
+        .unwrap_or(Path::new("."))
+        .to_string_lossy()
+        .to_string();
+    let bib_file = args.value_of("bib_file");
+    let renderer = Renderer::new(db, bib_file.map(str::to_string));
     let theorems = warp::path::param()
         .and(with_renderer(renderer))
-        .and_then(get_theorem);
-
+        .and_then(get_theorem)
+        .or(warp::fs::dir(path));
     warp::serve(theorems).run(([127, 0, 0, 1], 3030)).await;
 }
