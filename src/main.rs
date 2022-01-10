@@ -1,4 +1,8 @@
 mod statement;
+#[cfg(feature = "sts")]
+mod sts;
+#[cfg(feature = "sts")]
+mod sts_parser;
 
 use crate::statement::Renderer;
 use clap::crate_version;
@@ -7,59 +11,63 @@ use clap::Arg;
 use clap::ArgMatches;
 use metamath_knife::database::DbOptions;
 use metamath_knife::Database;
+use metamath_knife::diag::DiagnosticClass;
 use std::convert::Infallible;
 use std::path::Path;
 use std::str::FromStr;
 use warp::reject::Rejection;
 use warp::Filter;
 
-fn positive_integer(val: String) -> Result<(), String> {
-    u32::from_str(&val)
+#[cfg(feature = "sts")]
+use sts_parser::parse_sts;
+
+fn positive_integer(val: &str) -> Result<(), String> {
+    u32::from_str(val)
         .map(|_| ())
         .map_err(|e| format!("{}", e))
 }
 
-fn command_args<'a>() -> ArgMatches<'a> {
+fn command_args<'a>() -> ArgMatches {
     ClapApp::new("metamath-web")
         .version(crate_version!())
         .about("A web server providing Metamath pages")
         .arg(
-            Arg::with_name("database")
+            Arg::new("database")
                 .help("Database file to load")
                 .required(true)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("host")
+            Arg::new("host")
                 .help("Hostname to serve")
                 .long("host")
-                .short("h"),
+                .short('h'),
         )
         .arg(
-            Arg::with_name("port")
+            Arg::new("port")
                 .help("Port to listen to")
                 .long("port")
-                .short("p"),
+                .short('p'),
         )
         .arg(
-            Arg::with_name("jobs")
+            Arg::new("jobs")
                 .help("Number of threads to use for startup parsing")
                 .long("jobs")
-                .short("j")
+                .short('j')
                 .takes_value(true)
                 .validator(positive_integer),
         )
         .arg(
-            Arg::with_name("bib_file")
+            Arg::new("bib_file")
                 .help("Index file, which includes the bibliography")
                 .long("bib")
-                .short("b")
+                .short('b')
                 .takes_value(true),
         )
         .get_matches()
 }
 
-fn build_db(args: &ArgMatches<'_>) -> Database {
+fn build_db(args: &ArgMatches) -> Result<Database, String> {
     let job_count =
         usize::from_str(args.value_of("jobs").unwrap_or("8")).expect("validator should check this");
     let options = DbOptions {
@@ -77,8 +85,12 @@ fn build_db(args: &ArgMatches<'_>) -> Database {
     println!("Starting up...");
     db.parse(start, data);
     db.scope_pass();
+    let diag = db.diag_notations(&[DiagnosticClass::Parse], |diag| { format!("{:?}", diag) });
+    if !diag.is_empty() { return Err(format!("{:?}", diag)); }
+    #[cfg(feature = "sts")]
+    db.grammar_pass();
     println!("Ready.");
-    db
+    Ok(db)
 }
 
 fn with_renderer(
@@ -87,9 +99,9 @@ fn with_renderer(
     warp::any().map(move || renderer.clone())
 }
 
-pub async fn get_theorem(label: String, renderer: Renderer) -> Result<impl warp::Reply, Rejection> {
+pub async fn get_theorem(explorer: String, label: String, renderer: Renderer) -> Result<impl warp::Reply, Rejection> {
     let label = label.replace(".html", "");
-    match renderer.render_statement(label) {
+    match renderer.render_statement(explorer, label) {
         Some(html) => Ok(warp::reply::html(html)),
         None => Err(warp::reject::not_found()),
     }
@@ -98,17 +110,33 @@ pub async fn get_theorem(label: String, renderer: Renderer) -> Result<impl warp:
 #[tokio::main]
 async fn main() {
     let args = command_args();
-    let db = build_db(&args);
     let path = Path::new(args.value_of("database").unwrap())
         .parent()
         .unwrap_or(Path::new("."))
         .to_string_lossy()
         .to_string();
+    match build_renderer(args) {
+        Ok(renderer) => {
+            let theorems = warp::path::param()
+                .and(warp::path::param())
+                .and(with_renderer(renderer))
+                .and_then(get_theorem)
+                .or(warp::fs::dir(path));
+            warp::serve(theorems).run(([127, 0, 0, 1], 3030)).await;
+        },
+        Err(message) => {
+            println!("Error: {}", message);
+        },
+    }
+}
+
+fn build_renderer(args: ArgMatches) -> Result<Renderer, String> {
+    let db = build_db(&args)?;
+    #[cfg(feature = "sts")]
+    let sts = parse_sts(db.clone(), "mathml")?;
     let bib_file = args.value_of("bib_file");
-    let renderer = Renderer::new(db, bib_file.map(str::to_string));
-    let theorems = warp::path::param()
-        .and(with_renderer(renderer))
-        .and_then(get_theorem)
-        .or(warp::fs::dir(path));
-    warp::serve(theorems).run(([127, 0, 0, 1], 3030)).await;
+    Ok(Renderer::new(db, bib_file.map(str::to_string),
+        #[cfg(feature = "sts")]
+        sts,
+    ))
 }

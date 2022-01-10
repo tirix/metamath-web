@@ -1,5 +1,16 @@
 <!DOCTYPE html>
 <html>
+	<head>
+		{{header}}
+		<style>
+			mjx-container { margin: .3em 0em !important }
+			mjx-container { float: left!important; width: inherit !important; text-align: left !important; }
+			mjx-container { display: inline-block!important; }
+			mjx-container a { color: #444455 !important; cursor: pointer; }
+			mjx-container a:hover { color: #4494FF !important; }
+			mjx-container { display: inline-block!important; float: left; padding: 5px; }
+		</style>
+	</head>
 	<body>
 		<h1>Metamath Proof Explorer</h1>
 		<hr />
@@ -21,7 +32,7 @@
 						{{#each hyps }}<a href="#{{this}}">{{this}}</a>{{#if (not @last)}}, {{/if}}{{/each}}
 					</td>
 					<td><a href="{{label}}">{{label}}</a></td>
-					<td><a name="{{id}}"></a><pre>{{expr}}</pre></td>
+					<td><a name="{{id}}"></a>{{expr}}</td>
 				</tr>
 			{{/each}}
 		</table>

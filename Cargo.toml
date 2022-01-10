@@ -15,5 +15,12 @@ warp = "0.3.2"
 log = "0.4.14"
 tokio = { version = "1.14", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
-clap = "2.33.3"
+clap = { version = "3.0.5", features = ["cargo"] }
 regex = "1.5.4"
+
+# Optional dependencies
+nom = { version = "7.1.0", optional = true }
+
+[features]
+sts = ["nom"]
+
