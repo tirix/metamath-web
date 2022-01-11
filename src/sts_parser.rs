@@ -1,3 +1,4 @@
+use clap::ArgMatches;
 use std::fs::read_to_string;
 use nom::{
     IResult,
@@ -17,6 +18,7 @@ use nom::{
 use metamath_knife::parser::as_str;
 use metamath_knife::Database;
 use metamath_knife::formula::TypeCode;
+use regex::Regex;
 use crate::sts::{StsScheme, StsDefinition};
 
 impl StsScheme {
@@ -100,8 +102,13 @@ impl StsDefinition {
     }
 }
 
-pub fn parse_sts(db: Database, format: &str) -> Result<StsDefinition, String> {
-    let filename = format!("../set.mm/set-{}.mmts", format); // TODO - of course we shall not always read set.mm!
+pub fn parse_sts(db: Database, args: &ArgMatches, format: &str) -> Result<StsDefinition, String> {
+    let dbpath = args.value_of("database").unwrap();
+    // Match an optional path ending in /, the database name, and the .mm extention
+    let dbname_matches = Regex::new(r"^(.+/)?([^/]+)\.mm$").unwrap().captures(dbpath).ok_or("Could not parse database file name")?;
+    let path = dbname_matches.get(1).map_or("", |m| m.as_str());
+    let name = dbname_matches.get(2).unwrap().as_str();
+    let filename = format!("{}{}-{}.mmts", path, name, format);
     let contents = read_to_string(filename).expect("Something went wrong reading the STS definition file");
     StsDefinition::parse(db, contents)
 }

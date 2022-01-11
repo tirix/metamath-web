@@ -133,7 +133,7 @@ async fn main() {
 fn build_renderer(args: ArgMatches) -> Result<Renderer, String> {
     let db = build_db(&args)?;
     #[cfg(feature = "sts")]
-    let sts = parse_sts(db.clone(), "mathml")?;
+    let sts = parse_sts(db.clone(), &args, "mathml")?;
     let bib_file = args.value_of("bib_file");
     Ok(Renderer::new(db, bib_file.map(str::to_string),
         #[cfg(feature = "sts")]
