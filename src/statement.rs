@@ -1,5 +1,6 @@
 use handlebars::Handlebars;
 use metamath_knife::parser::as_str;
+use metamath_knife::parser::StatementType;
 use metamath_knife::Database;
 use metamath_knife::proof::ProofTreeArray;
 use regex::{Captures, Regex};
@@ -47,11 +48,11 @@ enum ExpressionRenderer {
 }
 
 impl ExpressionRenderer {
-    fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize) -> Result<String, String> {
+    fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize, use_provables: bool) -> Result<String, String> {
         match self {
             ExpressionRenderer::ASCII => Ok(format!("<pre> |- {}</pre>", &String::from_utf8_lossy(&proof_tree.exprs[tree_index]))),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::STS(sts) => sts.render_expression(proof_tree, tree_index),
+            ExpressionRenderer::STS(sts) => sts.render_expression(proof_tree, tree_index, use_provables),
         }
     }
 
@@ -136,18 +137,36 @@ impl Renderer {
         // Previous and next statements
         // let _prev_label = if let Some(prev_sref) = self.db.prev_sref(sref) { &String::from_utf8_lossy(prev_sref.label()) } else { "" };
 
-        // Proof
-        let steps = if let Some(proof_tree) = self.db.get_proof_tree(sref) {
-            proof_tree.with_logical_steps(&self.db, |cur, ix, stmt, hyps| StepInfo {
-                id: ix.to_string(),
-                hyps: hyps.iter().map(usize::to_string).collect::<Vec<String>>(),
-                label: as_str(stmt.label()).to_string(),
-                expr: expression_renderer.clone().render_expression(&proof_tree, cur)
-                    .unwrap_or_else(|e| format!("Could not format {} : {}", 
-                    &String::from_utf8_lossy(&proof_tree.exprs[cur]), e)),
-            })
-        } else {
-            vec![]
+        // Proof or Syntax proof
+        let steps = match sref.statement_type() {
+            StatementType::Provable =>
+                match self.db.get_proof_tree(sref) {
+                    Some(proof_tree) => proof_tree.with_logical_steps(&self.db, |cur, ix, stmt, hyps| StepInfo {
+                        id: ix.to_string(),
+                        hyps: hyps.iter().map(usize::to_string).collect::<Vec<String>>(),
+                        label: as_str(stmt.label()).to_string(),
+                        expr: expression_renderer.clone().render_expression(&proof_tree, cur, true)
+                            .unwrap_or_else(|e| format!("Could not format {} : {}", 
+                            &String::from_utf8_lossy(&proof_tree.exprs[cur]), e)),
+                        }),
+                    None => vec![],
+                },
+            StatementType::Axiom|StatementType::Essential|StatementType::Floating =>
+                match self.db.stmt_parse_result().get_formula(&sref) {
+                    Some(formula) => {
+                        let proof_tree = self.db.get_syntax_proof_tree(formula);
+                        proof_tree.with_steps(&self.db, |cur, stmt, hyps| StepInfo {
+                            id: cur.to_string(),
+                            hyps: hyps.iter().map(usize::to_string).collect::<Vec<String>>(),
+                            label: as_str(stmt.label()).to_string(),
+                            expr: expression_renderer.clone().render_expression(&proof_tree, cur, false)
+                                .unwrap_or_else(|e| format!("Could not format {} : {}", 
+                                &String::from_utf8_lossy(&proof_tree.exprs[cur]), e)),
+                            })
+                    },
+                    None => vec![],
+                },
+            _ => vec![],
         };
 
         let info = PageInfo {

@@ -88,12 +88,11 @@ impl StsDefinition {
         Err(format!("No typesetting found for {} with typecode {}", formula.as_ref(&self.database), as_str(nset.atom_name(typecode))))
     }
 
-    pub fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize) -> Result<String, String> {
+    pub fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize, use_provables: bool) -> Result<String, String> {
         let formula_string = String::from_utf8_lossy(&proof_tree.exprs[tree_index]);
         let nset = self.database.name_result();
         let grammar = self.database.grammar_result();
         let typecodes = grammar.typecodes();
-        let provable = grammar.provable_typecode();
         let formula = grammar.parse_formula(
             &mut formula_string.trim().split(" ").map(|t| {
                 nset.lookup_symbol(t.as_bytes()).unwrap().atom
@@ -101,7 +100,8 @@ impl StsDefinition {
             &typecodes, 
             nset
         ).map_err(|diag| format!("{} - Could not parse formula: {:?}", formula_string, diag))?;
+        let typecode = if use_provables { grammar.provable_typecode() } else { formula.get_typecode() };
         let display = self.display.clone();
-        Ok(display.replace("###", &self.format(provable, &formula)?))
+        Ok(display.replace("###", &self.format(typecode, &formula)?))
     }
 }

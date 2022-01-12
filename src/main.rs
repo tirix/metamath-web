@@ -92,6 +92,7 @@ fn build_db(args: &ArgMatches) -> Result<Database, String> {
     if !diag.is_empty() { return Err(format!("{:?}", diag)); }
     #[cfg(feature = "sts")]
     db.grammar_pass();
+    db.stmt_parse_pass();
     println!("Ready.");
     Ok(db)
 }
