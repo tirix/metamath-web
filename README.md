@@ -18,10 +18,31 @@ cd metamath-web
 cargo run ../set.mm/set.mm
 ```
 ### Viewing the pages
-Once the server is started, it will parse the metamath database. Wait until it displays the "Ready" message: it shall be a few seconds. You can then switch to a browser and visit [this URL](http://localhost:3030/mmset.raw.html) or for example [this URL](http://localhost:3030/o2p2e4) and start navigating. The port 3030 is not configurable for the moment, but that would be very easily done. Not all pages are served correctly.
+Once the server is started, it will parse the metamath database. Wait until it displays the "Ready" message: it shall be a few seconds. You can then switch to a browser and visit [this URL](http://localhost:3030/mpeascii/mmset.raw.html) or for example [this URL](http://localhost:3030/mpeascii/o2p2e4) and start navigating. The port 3030 is the default, see usage for configuration of the server address and port.
 
 ### Stopping the server
 Just hit CTRL+C to stop the server once you're done browsing!
+
+## Features and roadmap
+
+Here are some features implemented, and some which are still lacking:
+
+- [ ] display axioms and definitions' syntax proof
+- [X] links to other theorems in comments
+- [X] links to bibliographic references (see command line option `-b`)
+- [ ] in-line math in comments
+- [ ] summary of the theorems (hypotheses and statement) before the proof
+- [ ] navigation to next/previous theorem in the database
+- [ ] table of content
+- [ ] distinct variables
+- [ ] list of uses
+
+## Additional feature
+
+It is possible to serve pages formatted using structured typesetting, by activating the `sts` feature, and browsing [pages in the `mpests` path](http://localhost:3030/mpests/hgt749d).
+```
+cargo run --features sts ../set.mm/set.mm
+```
 
 ## Libraries used
 
