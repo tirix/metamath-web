@@ -13,6 +13,7 @@ use metamath_knife::database::DbOptions;
 use metamath_knife::Database;
 use metamath_knife::diag::DiagnosticClass;
 use std::convert::Infallible;
+use std::net::IpAddr;
 use std::path::Path;
 use std::str::FromStr;
 use warp::reject::Rejection;
@@ -38,14 +39,16 @@ fn command_args<'a>() -> ArgMatches {
                 .takes_value(true),
         )
         .arg(
-            Arg::new("host")
-                .help("Hostname to serve")
-                .long("host")
-                .short('h'),
+            Arg::new("address")
+                .help("Address to serve")
+                .default_value("0.0.0.0")
+                .long("address")
+                .short('a'),
         )
         .arg(
             Arg::new("port")
                 .help("Port to listen to")
+                .default_value("3030")
                 .long("port")
                 .short('p'),
         )
@@ -115,6 +118,8 @@ async fn main() {
         .unwrap_or(Path::new("."))
         .to_string_lossy()
         .to_string();
+    let addr : IpAddr = args.value_of("address").unwrap().parse().unwrap();
+    let port : u16 = args.value_of("port").unwrap().parse().unwrap();
     match build_renderer(args) {
         Ok(renderer) => {
             let theorems = warp::path::param()
@@ -122,7 +127,7 @@ async fn main() {
                 .and(with_renderer(renderer))
                 .and_then(get_theorem)
                 .or(warp::fs::dir(path));
-            warp::serve(theorems).run(([127, 0, 0, 1], 3030)).await;
+            warp::serve(theorems).run((addr, port)).await;
         },
         Err(message) => {
             println!("Error: {}", message);
