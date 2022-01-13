@@ -1,0 +1,112 @@
+body {
+    color: #445;
+    font-family: Bitter;
+    font-weight: 200;
+    line-height: 30px;
+    margin: 0px 100px;
+}
+
+h1 {
+    margin: 50px 0px;
+    font-weight: 700;
+    background-image: url(/static/Metamath_logo.png);
+    background-repeat: no-repeat;
+    background-size: contain;
+    padding-left: 80px;
+    padding-top: 10px;
+    height: 50px;
+}
+
+h2,h3,strong {
+    font-weight: 500;
+}
+
+h2 {
+    position: sticky;
+    top: 0px;
+    background: white;
+}
+
+hr {
+    border-style: solid;
+    margin: 30px 0;
+}
+
+table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.col-step {
+    width: 5%;
+}
+
+.col-hyp {
+    width: 11%;
+}
+
+.col-ref {
+    width: 9%;
+}
+
+.col-expr {
+    text-align: left;
+    padding-left: 50px;
+}
+
+.col-step, .col-hyp {
+    text-align: center;
+}
+
+.label, .step {
+    font-family: Inconsolata;
+    border-radius: 5px;
+    border: 1px grey;
+    padding: 3px 6px;
+    text-decoration: none;
+}
+
+.label {
+    background-color: #DEF;
+}
+
+.step {
+    background-color: #EEE;
+}
+
+a.label:hover {
+    background-color: #BDF;
+}
+
+a.step:hover {
+    background-color: #DDD;
+}
+
+a {
+    color: #445;
+}
+
+a:hover {
+    color: #4494FF;
+}
+
+qed {
+    position: relative;
+    display: flex;
+    float: right;
+    top: -30px;
+    font-size: 24px;
+}
+
+qed::before {
+    content: '\25A1';
+}
+
+mjx-container { margin: .3em 0em !important }
+mjx-container { float: left!important; width: inherit !important; text-align: left !important; }
+mjx-container { display: inline-block!important; }
+mjx-container a { color: #444455 !important; cursor: pointer; }
+mjx-container a:hover { color: #4494FF !important; }
+mjx-container { display: inline-block!important; float: left; padding: 5px; }
+
+

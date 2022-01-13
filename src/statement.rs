@@ -113,7 +113,7 @@ impl Renderer {
                 .replace("\n\n", "</p>\n<p>");
             let comment = self.link_regex.replace_all(&comment, |caps: &Captures| {
                 format!(
-                    "<a href=\"{}\">{}</a>",
+                    "<a href=\"{}\" class=\"label\">{}</a>",
                     caps.get(1).map_or("#", |m| m.as_str()),
                     caps.get(1).map_or("-", |m| m.as_str())
                 )

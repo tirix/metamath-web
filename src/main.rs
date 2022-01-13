@@ -127,6 +127,12 @@ async fn main() {
                 .and(warp::path::param())
                 .and(with_renderer(renderer))
                 .and_then(get_theorem)
+                .or(warp::path("static")
+                    .and(warp::fs::dir("static"))
+                    .map(|res: warp::fs::File|
+                        warp::reply::with_header(res, "cache-control", "public, max-age=31536000")
+                    )
+                )
                 .or(warp::fs::dir(path));
             warp::serve(theorems).run((addr, port)).await;
         },

@@ -1,40 +1,40 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+		<link rel="stylesheet" href="/static/metamath.css">
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200;500&family=Bitter:wght@200;500;700&display=swap">
 		{{header}}
-		<style>
-			mjx-container { margin: .3em 0em !important }
-			mjx-container { float: left!important; width: inherit !important; text-align: left !important; }
-			mjx-container { display: inline-block!important; }
-			mjx-container a { color: #444455 !important; cursor: pointer; }
-			mjx-container a:hover { color: #4494FF !important; }
-			mjx-container { display: inline-block!important; float: left; padding: 5px; }
-		</style>
 	</head>
 	<body>
-		<h1>Metamath Proof Explorer</h1>
+		<h1><logo/>Metamath Proof Explorer</h1>
 		<hr />
-		<h2>Theorem {{label}}</h2>
+		<h2>Theorem <span class="label">{{label}}</span></h2>
 		<p><strong>Description:</strong> {{comment}}</p>
 		<hr />
-		<h3>Proof of theorem {{label}}</h3>
-		<table>
-			<tr>
-				<th>Step</th>
-				<th>Hyp</th>
-				<th>Ref</th>
-				<th>Expression</th>
-			</tr>
-			{{#each steps}}
+		<h3>Proof of theorem <span class="label">{{label}}</span></h3>
+		<div class="proof">
+			<table>
 				<tr>
-					<td>{{id}}</td>
-					<td>
-						{{#each hyps }}<a href="#{{this}}">{{this}}</a>{{#if (not @last)}}, {{/if}}{{/each}}
-					</td>
-					<td><a href="{{label}}">{{label}}</a></td>
-					<td><a name="{{id}}"></a>{{expr}}</td>
+					<th class="col-step">Step</th>
+					<th class="col-hyp" >Hyp</th>
+					<th class="col-ref" >Ref</th>
+					<th class="col-expr">Expression</th>
 				</tr>
-			{{/each}}
-		</table>
+				{{#each steps}}
+					<tr>
+						<td class="col-step"><span class="step">{{id}}</span></td>
+						<td class="col-hyp">
+							{{#each hyps }}<a class="step" href="#{{this}}">{{this}}</a>{{#if (not @last)}} {{/if}}{{/each}}
+						</td>
+						<td class="col-ref" ><a href="{{label}}" class="label">{{label}}</a></td>
+						<td class="col-expr"><a name="{{id}}"></a>{{expr}}</td>
+					</tr>
+				{{/each}}
+			</table>
+			<qed/>
+		</div>
 	</body>
 </html>
