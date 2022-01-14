@@ -9,7 +9,7 @@ body {
 h1 {
     margin: 50px 0px;
     font-weight: 700;
-    background-image: url(/static/Metamath_logo.png);
+    background-image: url(/static/mmlogo.svg);
     background-repeat: no-repeat;
     background-size: contain;
     padding-left: 80px;
@@ -30,6 +30,17 @@ h2 {
 hr {
     border-style: solid;
     margin: 30px 0;
+}
+
+.contrib {
+    margin-left: 20px;
+    font-size: smaller;
+    color: #aaa;
+}
+
+.contrib a {
+    text-decoration: none;
+    color: #aaa;
 }
 
 table {

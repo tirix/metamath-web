@@ -31,6 +31,7 @@ trait Replacer: FnMut(&Captures) -> String + Sized + Clone {}
 pub struct Renderer {
     templates: Arc<Handlebars<'static>>,
     db: Database,
+    contrib_regex: Regex,
     link_regex: Regex,
     bibl_regex: Regex,
     bib_file: String,
@@ -75,11 +76,13 @@ impl Renderer {
         templates
             .register_template_string("statement", include_str!("statement.hbs"))
             .expect("Unable to parse statement template.");
+        let contrib_regex = Regex::new(r"\((Contributed|Revised|Proof[ \n]+shortened)[ \n]+by[ \n]+(?s)(.+?),[ \n]+(\d{1,2}-\w\w\w-\d{4})\.\)").unwrap();
         let link_regex = Regex::new(r"\~ ([^ ]+) ").unwrap();
         let bibl_regex = Regex::new(r"\[([^ ]+)\]").unwrap();
         Renderer {
             templates: Arc::new(templates),
             db,
+            contrib_regex,
             link_regex,
             bibl_regex,
             bib_file: bib_file.unwrap_or("".to_string()),
@@ -111,6 +114,15 @@ impl Renderer {
             span.end -= 3;
             let comment = String::from_utf8_lossy(span.as_ref(&cmt.segment().segment.buffer))
                 .replace("\n\n", "</p>\n<p>");
+            let comment = self.contrib_regex.replace_all(&comment, |caps: &Captures| {
+                format!(
+                    "<span class=\"contrib\">({} by <a href=\"/contributors#{}\">{}</a>, {})</span>",
+                    caps.get(1).expect("Contribution Regex did not return a contribution type").as_str(),
+                    caps.get(2).expect("Contribution Regex did not return a contributor").as_str(),
+                    caps.get(2).expect("Contribution Regex did not return a contributor").as_str(),
+                    caps.get(3).expect("Contribution Regex did not return a contribution date").as_str(),
+                )
+            });
             let comment = self.link_regex.replace_all(&comment, |caps: &Captures| {
                 format!(
                     "<a href=\"{}\" class=\"label\">{}</a>",
