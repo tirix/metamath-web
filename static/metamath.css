@@ -86,10 +86,12 @@ table {
 }
 
 a.label:hover {
+    color: black;
     background-color: #BDF;
 }
 
 a.step:hover {
+    color: black;
     background-color: #DDD;
 }
 

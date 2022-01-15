@@ -27,11 +27,11 @@ Just hit CTRL+C to stop the server once you're done browsing!
 
 Here are some features implemented, and some which are still lacking:
 
-- [ ] display axioms and definitions' syntax proof
-- [X] links to other theorems in comments
-- [X] links to bibliographic references (see command line option `-b`)
+- [x] display axioms and definitions' syntax proof
+- [x] links to other theorems in comments
+- [x] links to bibliographic references (see command line option `-b`)
 - [ ] in-line math in comments
-- [ ] summary of the theorems (hypotheses and statement) before the proof
+- [x] summary of the theorems (hypotheses and statement) before the proof
 - [ ] navigation to next/previous theorem in the database
 - [ ] table of content
 - [ ] distinct variables

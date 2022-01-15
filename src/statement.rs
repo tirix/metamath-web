@@ -1,13 +1,21 @@
 use handlebars::Handlebars;
 use metamath_knife::parser::as_str;
 use metamath_knife::parser::StatementType;
+use metamath_knife::parser::StatementRef;
 use metamath_knife::Database;
+use metamath_knife::Formula;
 use metamath_knife::proof::ProofTreeArray;
 use regex::{Captures, Regex};
 use serde::Serialize;
 use std::sync::Arc;
 #[cfg(feature = "sts")]
 use crate::sts::StsDefinition;
+
+#[derive(Serialize)]
+struct HypInfo {
+    label: String,
+    expr: String,
+}
 
 #[derive(Serialize)]
 struct StepInfo {
@@ -22,6 +30,9 @@ struct PageInfo {
     header: String,
     label: String,
     comment: String,
+    expr: String,
+    hyps: Vec<HypInfo>,
+    is_proof: bool,
     steps: Vec<StepInfo>,
 }
 
@@ -49,6 +60,22 @@ enum ExpressionRenderer {
 }
 
 impl ExpressionRenderer {
+    fn render_statement(&self, sref: &StatementRef, database: &Database, use_provables: bool) -> Result<String, String> {
+        match self {
+            ExpressionRenderer::ASCII => Ok(format!("<pre> |- {}</pre>", &String::from_utf8_lossy(b"AAA"))),
+            #[cfg(feature = "sts")]
+            ExpressionRenderer::STS(sts) => sts.render_statement(sref, use_provables),
+        }
+    }
+
+    fn render_formula(&self, formula: &Formula, database: &Database, use_provables: bool) -> Result<String, String> {
+        match self {
+            ExpressionRenderer::ASCII => Ok(format!("<pre> |- {}</pre>", formula.as_ref(database))),
+            #[cfg(feature = "sts")]
+            ExpressionRenderer::STS(sts) => sts.render_formula(formula, use_provables),
+        }
+    }
+
     fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize, use_provables: bool) -> Result<String, String> {
         match self {
             ExpressionRenderer::ASCII => Ok(format!("<pre> |- {}</pre>", &String::from_utf8_lossy(&proof_tree.exprs[tree_index]))),
@@ -150,9 +177,9 @@ impl Renderer {
         // let _prev_label = if let Some(prev_sref) = self.db.prev_sref(sref) { &String::from_utf8_lossy(prev_sref.label()) } else { "" };
 
         // Proof or Syntax proof
-        let steps = match sref.statement_type() {
+        let (is_proof, steps) = match sref.statement_type() {
             StatementType::Provable =>
-                match self.db.get_proof_tree(sref) {
+                (true, match self.db.get_proof_tree(sref) {
                     Some(proof_tree) => proof_tree.with_logical_steps(&self.db, |cur, ix, stmt, hyps| StepInfo {
                         id: ix.to_string(),
                         hyps: hyps.iter().map(usize::to_string).collect::<Vec<String>>(),
@@ -162,9 +189,9 @@ impl Renderer {
                             &String::from_utf8_lossy(&proof_tree.exprs[cur]), e)),
                         }),
                     None => vec![],
-                },
+                }),
             StatementType::Axiom|StatementType::Essential|StatementType::Floating =>
-                match self.db.stmt_parse_result().get_formula(&sref) {
+                (false, match self.db.stmt_parse_result().get_formula(&sref) {
                     Some(formula) => {
                         let proof_tree = self.db.get_syntax_proof_tree(formula);
                         proof_tree.with_steps(&self.db, |cur, stmt, hyps| StepInfo {
@@ -177,14 +204,28 @@ impl Renderer {
                             })
                     },
                     None => vec![],
-                },
-            _ => vec![],
+                }),
+            _ => (false, vec![]),
         };
+
+        // Statement assertion
+        let expr = expression_renderer.render_statement(&sref, &self.db, is_proof).unwrap_or_else(|e| format!("Could not format assertion : {}", e));
+
+        // Hypotheses
+        let hyps = self.db.scope_result().get(sref.label())?.as_ref(&self.db).essentials().map(|(label, formula)| {
+            HypInfo {
+                label: as_str(self.db.name_result().atom_name(label)).to_string(),
+                expr: expression_renderer.render_formula(formula, &self.db, is_proof).unwrap_or_else(|e| e),
+            }
+        }).collect();
 
         let info = PageInfo {
             header,
             label,
             comment,
+            expr,
+            hyps,
+            is_proof,
             steps,
         };
         Some(
