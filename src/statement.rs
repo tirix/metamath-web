@@ -29,6 +29,7 @@ struct StepInfo {
 struct PageInfo {
     header: String,
     label: String,
+    statement_type: String,
     comment: String,
     expr: String,
     hyps: Vec<HypInfo>,
@@ -217,6 +218,12 @@ impl Renderer {
             _ => (false, vec![]),
         };
 
+        // Statement type
+        let statement_type = if is_proof { "Theorem".to_string() }
+            else if steps.len()==0 { "Syntax definition".to_string() } 
+            else if label.starts_with("df-") { "Definition".to_string() }
+            else { "Axiom".to_string() };
+
         // Statement assertion
         let expr = expression_renderer.render_statement(&sref, &self.db, is_proof).unwrap_or_else(|e| format!("Could not format assertion : {}", e));
 
@@ -231,6 +238,7 @@ impl Renderer {
         let info = PageInfo {
             header,
             label,
+            statement_type,
             comment,
             expr,
             hyps,
