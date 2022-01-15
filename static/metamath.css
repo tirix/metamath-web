@@ -1,6 +1,6 @@
 body {
     color: #445;
-    font-family: Bitter;
+    font-family: Bitter,'Times New Roman', Times, serif;
     font-weight: 200;
     line-height: 30px;
     margin: 0px 100px;
@@ -30,6 +30,12 @@ h2 {
 hr {
     border-style: solid;
     margin: 30px 0;
+}
+
+.discouraged {
+    margin-left: 20px;
+    font-size: smaller;
+    color: #c88;
 }
 
 .contrib {
@@ -70,7 +76,7 @@ table {
 }
 
 .label, .step {
-    font-family: Inconsolata;
+    font-family: Inconsolata, 'Courier New', Courier, monospace;
     border-radius: 5px;
     border: 1px grey;
     padding: 3px 6px;
@@ -103,6 +109,10 @@ a:hover {
     color: #4494FF;
 }
 
+pre {
+    font-family: Inconsolata, 'Courier New', Courier, monospace;
+}
+
 qed {
     position: relative;
     display: flex;
@@ -120,6 +130,6 @@ mjx-container { float: left!important; width: inherit !important; text-align: le
 mjx-container { display: inline-block!important; }
 mjx-container a { color: #444455 !important; cursor: pointer; }
 mjx-container a:hover { color: #4494FF !important; }
-mjx-container { display: inline-block!important; float: left; padding: 5px; }
+mjx-container { display: inline-block!important; padding: 5px; }
 
 

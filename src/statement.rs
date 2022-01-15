@@ -43,6 +43,7 @@ pub struct Renderer {
     templates: Arc<Handlebars<'static>>,
     db: Database,
     contrib_regex: Regex,
+    discouraged_regex: Regex,
     link_regex: Regex,
     bibl_regex: Regex,
     bib_file: String,
@@ -62,7 +63,7 @@ enum ExpressionRenderer {
 impl ExpressionRenderer {
     fn render_statement(&self, sref: &StatementRef, database: &Database, use_provables: bool) -> Result<String, String> {
         match self {
-            ExpressionRenderer::ASCII => Ok(format!("<pre> |- {}</pre>", &String::from_utf8_lossy(b"AAA"))),
+            ExpressionRenderer::ASCII => self.render_formula(database.stmt_parse_result().get_formula(sref).ok_or("Formula not found")?, database, use_provables),
             #[cfg(feature = "sts")]
             ExpressionRenderer::STS(sts) => sts.render_statement(sref, use_provables),
         }
@@ -70,7 +71,7 @@ impl ExpressionRenderer {
 
     fn render_formula(&self, formula: &Formula, database: &Database, use_provables: bool) -> Result<String, String> {
         match self {
-            ExpressionRenderer::ASCII => Ok(format!("<pre> |- {}</pre>", formula.as_ref(database))),
+            ExpressionRenderer::ASCII => Ok(format!("<pre>{}</pre>", formula.as_ref(database)).replace("wff ", " |- ")),
             #[cfg(feature = "sts")]
             ExpressionRenderer::STS(sts) => sts.render_formula(formula, use_provables),
         }
@@ -104,12 +105,14 @@ impl Renderer {
             .register_template_string("statement", include_str!("statement.hbs"))
             .expect("Unable to parse statement template.");
         let contrib_regex = Regex::new(r"\((Contributed|Revised|Proof[ \n]+shortened)[ \n]+by[ \n]+(?s)(.+?),[ \n]+(\d{1,2}-\w\w\w-\d{4})\.\)").unwrap();
-        let link_regex = Regex::new(r"\~ ([^ ]+) ").unwrap();
-        let bibl_regex = Regex::new(r"\[([^ ]+)\]").unwrap();
+        let discouraged_regex = Regex::new(r"\(New usage is discouraged\.\)|\(Proof modification is discouraged\.\)").unwrap();
+        let link_regex = Regex::new(r"\~ ([^ \n]+)[ \n]+").unwrap();
+        let bibl_regex = Regex::new(r"\[([^ \n]+)\]").unwrap();
         Renderer {
             templates: Arc::new(templates),
             db,
             contrib_regex,
+            discouraged_regex,
             link_regex,
             bibl_regex,
             bib_file: bib_file.unwrap_or("".to_string()),
@@ -150,9 +153,15 @@ impl Renderer {
                     caps.get(3).expect("Contribution Regex did not return a contribution date").as_str(),
                 )
             });
+            let comment = self.discouraged_regex.replace_all(&comment, |caps: &Captures| {
+                format!(
+                    "<span class=\"discouraged\">{}</span>",
+                    caps.get(0).unwrap().as_str(),
+                )
+            });
             let comment = self.link_regex.replace_all(&comment, |caps: &Captures| {
                 format!(
-                    "<a href=\"{}\" class=\"label\">{}</a>",
+                    "<a href=\"{}\" class=\"label\">{}</a> ",
                     caps.get(1).map_or("#", |m| m.as_str()),
                     caps.get(1).map_or("-", |m| m.as_str())
                 )
