@@ -4,6 +4,7 @@ use metamath_knife::Database;
 use metamath_knife::Formula;
 use metamath_knife::proof::ProofTreeArray;
 use metamath_knife::parser::as_str;
+use metamath_knife::parser::StatementRef;
 use std::sync::Arc;
 use std::collections::HashMap;
 
@@ -88,6 +89,18 @@ impl StsDefinition {
         Err(format!("No typesetting found for {} with typecode {}", formula.as_ref(&self.database), as_str(nset.atom_name(typecode))))
     }
 
+    pub fn render_formula(&self, formula: &Formula, use_provables: bool) -> Result<String, String> {
+        let grammar = self.database.grammar_result();
+        let typecode = if use_provables { grammar.provable_typecode() } else { formula.get_typecode() };
+        let display = self.display.clone();
+        Ok(display.replace("###", &self.format(typecode, &formula)?))
+    }
+
+    pub fn render_statement(&self, sref: &StatementRef, use_provables: bool) -> Result<String, String> {
+        let formula = self.database.stmt_parse_result().get_formula(sref).ok_or("Unknown statement")?;
+        self.render_formula(formula, use_provables)
+    }
+
     pub fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize, use_provables: bool) -> Result<String, String> {
         let formula_string = String::from_utf8_lossy(&proof_tree.exprs[tree_index]);
         let nset = self.database.name_result();
@@ -100,8 +113,6 @@ impl StsDefinition {
             &typecodes, 
             nset
         ).map_err(|diag| format!("{} - Could not parse formula: {:?}", formula_string, diag))?;
-        let typecode = if use_provables { grammar.provable_typecode() } else { formula.get_typecode() };
-        let display = self.display.clone();
-        Ok(display.replace("###", &self.format(typecode, &formula)?))
+        self.render_formula(&formula, use_provables)
     }
 }

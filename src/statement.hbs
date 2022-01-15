@@ -11,30 +11,58 @@
 	<body>
 		<h1><logo/>Metamath Proof Explorer</h1>
 		<hr />
-		<h2>Theorem <span class="label">{{label}}</span></h2>
+		<h2>{{#if is_proof}}Theorem{{else}}{{#if steps}}Definition{{else}}Syntax definition{{/if}}{{/if}} <span class="label">{{label}}</span></h2>
 		<p><strong>Description:</strong> {{comment}}</p>
-		<hr />
-		<h3>Proof of theorem <span class="label">{{label}}</span></h3>
-		<div class="proof">
+
+		<div class="statement">
 			<table>
 				<tr>
-					<th class="col-step">Step</th>
-					<th class="col-hyp" >Hyp</th>
+					<th class="col-step"></th>
+					<th class="col-hyp" ></th>
 					<th class="col-ref" >Ref</th>
 					<th class="col-expr">Expression</th>
 				</tr>
-				{{#each steps}}
+				{{#each hyps}}
 					<tr>
-						<td class="col-step"><span class="step">{{id}}</span></td>
-						<td class="col-hyp">
-							{{#each hyps }}<a class="step" href="#{{this}}">{{this}}</a>{{#if (not @last)}} {{/if}}{{/each}}
-						</td>
+						<td class="col-step"></td>
+						<td class="col-hyp">{{#if @first}}{{#if @last}}Hypothesis{{else}}Hypotheses{{/if}}{{/if}}</td>
 						<td class="col-ref" ><a href="{{label}}" class="label">{{label}}</a></td>
-						<td class="col-expr"><a name="{{id}}"></a>{{expr}}</td>
+						<td class="col-expr">{{expr}}</td>
 					</tr>
 				{{/each}}
+				<tr>
+					<td class="col-step"></td>
+					<td class="col-hyp">Assertion</td>
+					<td class="col-ref" ><span class="label">{{label}}</span></td>
+					<td class="col-expr">{{expr}}</td>
+				</tr>
 			</table>
-			<qed/>
 		</div>
+		<hr />
+
+		{{#if steps}}
+			<h3>{{#if is_proof}}Proof{{else}}Detailed syntax breakdown{{/if}}</h3>
+			<div class="proof">
+				<table>
+					<tr>
+						<th class="col-step">Step</th>
+						<th class="col-hyp" >Hyp</th>
+						<th class="col-ref" >Ref</th>
+						<th class="col-expr">Expression</th>
+					</tr>
+					{{#each steps}}
+						<tr>
+							<td class="col-step"><span class="step">{{id}}</span></td>
+							<td class="col-hyp">
+								{{#each hyps }}<a class="step" href="#{{this}}">{{this}}</a>{{#if (not @last)}} {{/if}}{{/each}}
+							</td>
+							<td class="col-ref" ><a href="{{label}}" class="label">{{label}}</a></td>
+							<td class="col-expr"><a name="{{id}}"></a>{{expr}}</td>
+						</tr>
+					{{/each}}
+				</table>
+				<qed/>
+			</div>
+		{{/if}}
 	</body>
 </html>
