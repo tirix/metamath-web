@@ -29,6 +29,7 @@ struct StepInfo {
 struct PageInfo {
     header: String,
     label: String,
+    statement_type: String,
     comment: String,
     expr: String,
     hyps: Vec<HypInfo>,
@@ -174,6 +175,8 @@ impl Renderer {
                     caps.get(1).map_or("", |m| m.as_str())
                 )
             });
+//            Double tildes ~~ shall be substituted with single tildes, see link in ~ dn1
+
 //            Anything inside <HTML> shall be unchanged
 //            _..._ -> to italics <em></em>, except if part of external hyperlinks
 //            See mmwtex.c
@@ -217,6 +220,12 @@ impl Renderer {
             _ => (false, vec![]),
         };
 
+        // Statement type
+        let statement_type = if is_proof { "Theorem".to_string() }
+            else if steps.len()==0 { "Syntax definition".to_string() } 
+            else if label.starts_with("df-") { "Definition".to_string() }
+            else { "Axiom".to_string() };
+
         // Statement assertion
         let expr = expression_renderer.render_statement(&sref, &self.db, is_proof).unwrap_or_else(|e| format!("Could not format assertion : {}", e));
 
@@ -231,6 +240,7 @@ impl Renderer {
         let info = PageInfo {
             header,
             label,
+            statement_type,
             comment,
             expr,
             hyps,

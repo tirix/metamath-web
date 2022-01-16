@@ -11,7 +11,7 @@
 	<body>
 		<h1><logo/>Metamath Proof Explorer</h1>
 		<hr />
-		<h2>{{#if is_proof}}Theorem{{else}}{{#if steps}}Definition{{else}}Syntax definition{{/if}}{{/if}} <span class="label">{{label}}</span></h2>
+		<h2>{{statement_type}} <span class="label">{{label}}</span></h2>
 		<p><strong>Description:</strong> {{comment}}</p>
 
 		<div class="statement">
@@ -61,7 +61,7 @@
 						</tr>
 					{{/each}}
 				</table>
-				<qed/>
+				{{#if is_proof}}<qed/>{{/if}}
 			</div>
 		{{/if}}
 	</body>
