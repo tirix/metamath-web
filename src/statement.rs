@@ -175,6 +175,8 @@ impl Renderer {
                     caps.get(1).map_or("", |m| m.as_str())
                 )
             });
+//            Double tildes ~~ shall be substituted with single tildes, see link in ~ dn1
+
 //            Anything inside <HTML> shall be unchanged
 //            _..._ -> to italics <em></em>, except if part of external hyperlinks
 //            See mmwtex.c
