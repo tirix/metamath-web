@@ -9,12 +9,19 @@
 		{{header}}
 	</head>
 	<body>
+		<nav>
+			<ol class="breadcrumb">
+			{{#each breadcrumb}}
+				<li><a href="{{link}}" {{#if stmt_level}}class="label"{{/if}}>{{name}}</a></li>
+			{{/each}}
+			</ol>
+		</nav>
 		<h1><logo/>Metamath Proof Explorer</h1>
 		<hr />
 		<h2>{{statement_type}} <span class="label">{{label}}</span></h2>
 		<p><strong>Description:</strong> {{comment}}</p>
 
-		<div class="statement">
+		<section class="statement">
 			<table>
 				<tr>
 					<th class="col-step"></th>
@@ -37,12 +44,12 @@
 					<td class="col-expr">{{expr}}</td>
 				</tr>
 			</table>
-		</div>
+		</section>
 		<hr />
 
 		{{#if steps}}
-			<h3>{{#if is_proof}}Proof{{else}}Detailed syntax breakdown{{/if}}</h3>
-			<div class="proof">
+			<section class="proof">
+				<h3>{{#if is_proof}}Proof{{else}}Detailed syntax breakdown{{/if}}</h3>
 				<table>
 					<tr>
 						<th class="col-step">Step</th>

@@ -10,6 +10,8 @@ use serde::Serialize;
 use std::sync::Arc;
 #[cfg(feature = "sts")]
 use crate::sts::StsDefinition;
+use crate::toc::ChapterInfo;
+use crate::toc::get_breadcrumb;
 
 #[derive(Serialize)]
 struct HypInfo {
@@ -32,6 +34,7 @@ struct PageInfo {
     statement_type: String,
     comment: String,
     expr: String,
+    breadcrumb: Vec<ChapterInfo>,
     hyps: Vec<HypInfo>,
     is_proof: bool,
     steps: Vec<StepInfo>,
@@ -41,8 +44,8 @@ trait Replacer: FnMut(&Captures) -> String + Sized + Clone {}
 
 #[derive(Clone)]
 pub struct Renderer {
-    templates: Arc<Handlebars<'static>>,
-    db: Database,
+    pub(crate) templates: Arc<Handlebars<'static>>,
+    pub(crate) db: Database,
     contrib_regex: Regex,
     discouraged_regex: Regex,
     link_regex: Regex,
@@ -105,6 +108,9 @@ impl Renderer {
         templates
             .register_template_string("statement", include_str!("statement.hbs"))
             .expect("Unable to parse statement template.");
+        templates
+            .register_template_string("toc", include_str!("toc.hbs"))
+            .expect("Unable to parse table of contents template.");
         let contrib_regex = Regex::new(r"\((Contributed|Revised|Proof[ \n]+shortened)[ \n]+by[ \n]+(?s)(.+?),[ \n]+(\d{1,2}-\w\w\w-\d{4})\.\)").unwrap();
         let discouraged_regex = Regex::new(r"\(New usage is discouraged\.\)|\(Proof modification is discouraged\.\)").unwrap();
         let link_regex = Regex::new(r"\~ ([^ \n]+)[ \n]+").unwrap();
@@ -137,6 +143,9 @@ impl Renderer {
 
         // Header
         let header = expression_renderer.get_header();
+
+        // Table of Contents - Breadcrumb
+        let breadcrumb = get_breadcrumb(&self.db.get_outline_node(sref));
 
         // Comments
         let comment = if let Some(cmt) = sref.associated_comment() {
@@ -239,6 +248,7 @@ impl Renderer {
 
         let info = PageInfo {
             header,
+            breadcrumb,
             label,
             statement_type,
             comment,
