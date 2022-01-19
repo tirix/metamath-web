@@ -18,7 +18,7 @@ cd metamath-web
 cargo run ../set.mm/set.mm
 ```
 ### Viewing the pages
-Once the server is started, it will parse the metamath database. Wait until it displays the "Ready" message: it shall be a few seconds. You can then switch to a browser and visit [this URL](http://localhost:3030/mpeascii/mmset.raw.html) or for example [this URL](http://localhost:3030/mpeascii/o2p2e4) and start navigating. The port 3030 is the default, see usage for configuration of the server address and port.
+Once the server is started, it will parse the metamath database. Wait until it displays the "Ready" message: it shall be a few seconds. You can then switch to a browser and visit for example [http://localhost:3030/mpeascii/o2p2e4](http://localhost:3030/mpeascii/o2p2e4) or [the table of content](http://localhost:3030/mpeascii/toc) and start navigating. The port 3030 is the default, see usage for configuration of the server address and port.
 
 ### Stopping the server
 Just hit CTRL+C to stop the server once you're done browsing!
@@ -33,7 +33,7 @@ Here are some features implemented, and some which are still lacking:
 - [ ] in-line math in comments
 - [x] summary of the theorems (hypotheses and statement) before the proof
 - [ ] navigation to next/previous theorem in the database
-- [ ] table of content
+- [x] table of content
 - [ ] distinct variables
 - [ ] list of uses
 
