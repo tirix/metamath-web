@@ -14,6 +14,7 @@ use clap::ArgMatches;
 use metamath_knife::database::DbOptions;
 use metamath_knife::Database;
 use metamath_knife::diag::DiagnosticClass;
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::IpAddr;
 use std::path::Path;
@@ -95,6 +96,7 @@ fn build_db(args: &ArgMatches) -> Result<Database, String> {
     db.typesetting_pass();
     db.grammar_pass();
     db.stmt_parse_pass();
+    db.outline_pass();
     println!("Ready.");
     Ok(db)
 }
@@ -113,6 +115,14 @@ pub async fn get_theorem(explorer: String, label: String, renderer: Renderer) ->
     }
 }
 
+pub async fn get_toc(explorer: String, query: HashMap<String, String>, renderer: Renderer) -> Result<impl warp::Reply, Rejection> {
+    let chapter_ref : usize = query.get("ref").map_or(Ok(0), |c| c.parse()).unwrap_or(0);
+    match renderer.render_toc(explorer, chapter_ref) {
+        Some(html) => Ok(warp::reply::html(html)),
+        None => Err(warp::reject::not_found()),
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let args = command_args();
@@ -125,18 +135,24 @@ async fn main() {
     let port : u16 = args.value_of("port").unwrap().parse().unwrap();
     match build_renderer(args) {
         Ok(renderer) => {
+            let toc_renderer = renderer.clone();
             let theorems = warp::path::param()
                 .and(warp::path::param())
                 .and(with_renderer(renderer))
-                .and_then(get_theorem)
-                .or(warp::path("static")
-                    .and(warp::fs::dir("static"))
-                    .map(|res: warp::fs::File|
-                        warp::reply::with_header(res, "cache-control", "public, max-age=31536000")
-                    )
-                )
-                .or(warp::fs::dir(path));
-            warp::serve(theorems).run((addr, port)).await;
+                .and_then(get_theorem);
+            let toc = warp::path::param()
+                .and(warp::path("toc"))
+                .and(warp::query::<HashMap<String, String>>())
+                .and(with_renderer(toc_renderer))
+                .and_then(get_toc);
+            let res = warp::path("static")
+                .and(warp::fs::dir("static"))
+                .map(|res: warp::fs::File|
+                    warp::reply::with_header(res, "cache-control", "public, max-age=31536000")
+                );
+            let statics = warp::fs::dir(path);
+            let routes = theorems.or(toc).or(res).or(statics);
+            warp::serve(routes).run((addr, port)).await;
         },
         Err(message) => {
             println!("Error: {}", message);

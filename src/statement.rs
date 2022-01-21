@@ -35,6 +35,7 @@ struct PageInfo {
     statement_type: String,
     comment: String,
     expr: String,
+    breadcrumb: Vec<ChapterInfo>,
     hyps: Vec<HypInfo>,
     is_proof: bool,
     steps: Vec<StepInfo>,
@@ -106,7 +107,6 @@ impl ExpressionRenderer {
         let nset = database.name_result();
         let grammar = database.grammar_result();
         let typecodes = grammar.typecodes();
-        println!("Going into parse_formula!");
         let formula = grammar.parse_formula(
             &mut formula_string.trim().split(" ").map(|t| {
                 nset.lookup_symbol(t.as_bytes()).unwrap().atom
@@ -114,7 +114,6 @@ impl ExpressionRenderer {
             &typecodes, 
             nset
         ).map_err(|diag| format!("{} - Could not parse formula: {:?}", formula_string, diag));
-        println!("Got out of parse_formula!");
         formula
     }
 }
@@ -129,6 +128,9 @@ impl Renderer {
         templates
             .register_template_string("statement", include_str!("statement.hbs"))
             .expect("Unable to parse statement template.");
+        templates
+            .register_template_string("toc", include_str!("toc.hbs"))
+            .expect("Unable to parse table of contents template.");
         let contrib_regex = Regex::new(r"\((Contributed|Revised|Proof[ \n]+shortened)[ \n]+by[ \n]+(?s)(.+?),[ \n]+(\d{1,2}-\w\w\w-\d{4})\.\)").unwrap();
         let discouraged_regex = Regex::new(r"\(New usage is discouraged\.\)|\(Proof modification is discouraged\.\)").unwrap();
         let link_regex = Regex::new(r"\~ ([^ \n]+)[ \n]+").unwrap();
@@ -160,15 +162,12 @@ impl Renderer {
     pub fn render_statement(&self, explorer: String, label: String) -> Option<String> {
         let sref = self.db.statement(&label)?;
         let expression_renderer = self.get_expression_renderer(explorer)?;
-        println!("Render page!");
 
         // Header
         let header = expression_renderer.get_header();
-        println!("Got header!");
 
         // Table of Contents - Breadcrumb
         let breadcrumb = get_breadcrumb(&self.db.get_outline_node(sref));
-        println!("Got breadcrumb!");
 
         // Comments
         let comment = if let Some(cmt) = sref.associated_comment() {
@@ -216,7 +215,6 @@ impl Renderer {
         } else {
             "(This statement does not have an associated comment)".to_string()
         };
-        println!("Got comments!");
 
         // Previous and next statements
         // let _prev_label = if let Some(prev_sref) = self.db.prev_sref(sref) { &String::from_utf8_lossy(prev_sref.label()) } else { "" };
@@ -238,7 +236,6 @@ impl Renderer {
             StatementType::Axiom|StatementType::Essential|StatementType::Floating =>
                 (false, match self.db.stmt_parse_result().get_formula(&sref) {
                     Some(formula) => {
-                        println!("Render formula!");
                         let proof_tree = self.db.get_syntax_proof_tree(formula);
                         proof_tree.with_steps(&self.db, |cur, stmt, hyps| StepInfo {
                             id: cur.to_string(),
@@ -261,11 +258,9 @@ impl Renderer {
             else { "Axiom".to_string() };
 
         // Statement assertion
-        println!("Render statement!");
         let expr = expression_renderer.render_statement(&sref, &self.db, is_proof).unwrap_or_else(|e| format!("Could not format assertion : {}", e));
 
         // Hypotheses
-        println!("Render hyps!");
         let hyps = self.db.scope_result().get(sref.label())?.as_ref(&self.db).essentials().map(|(label, formula)| {
             HypInfo {
                 label: as_str(self.db.name_result().atom_name(label)).to_string(),
@@ -275,6 +270,7 @@ impl Renderer {
 
         let info = PageInfo {
             header,
+            breadcrumb,
             label,
             statement_type,
             comment,
