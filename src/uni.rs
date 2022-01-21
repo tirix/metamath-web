@@ -24,7 +24,6 @@ impl UnicodeRenderer {
         for symbol in formula.as_ref(&self.database).into_iter() {
             let token = nset.atom_name(symbol);
             write!(output, "{} ", as_str(typesetting.get_alt_html_def(token).ok_or(format!("Unknown symbol: {}", as_str(token)).to_string())?)).unwrap();
-            println!("{}", output);
         }
         Ok(output)
     }
@@ -34,7 +33,6 @@ impl UnicodeRenderer {
         let typesetting = self.database.typesetting_result();
         for token in sref.math_iter() {
             write!(output, "{} ", as_str(typesetting.get_alt_html_def(&token).ok_or(format!("Unknown symbol: {}", as_str(&token)).to_string())?)).unwrap();
-            println!("{}", output);
         }
         Ok(output)
     }
