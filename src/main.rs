@@ -1,4 +1,6 @@
 mod statement;
+mod toc;
+mod uni;
 #[cfg(feature = "sts")]
 mod sts;
 #[cfg(feature = "sts")]
@@ -90,7 +92,7 @@ fn build_db(args: &ArgMatches) -> Result<Database, String> {
     db.scope_pass();
     let diag = db.diag_notations(&[DiagnosticClass::Parse], |diag| { format!("{:?}", diag) });
     if !diag.is_empty() { return Err(format!("{:?}", diag)); }
-    #[cfg(feature = "sts")]
+    db.typesetting_pass();
     db.grammar_pass();
     db.stmt_parse_pass();
     println!("Ready.");

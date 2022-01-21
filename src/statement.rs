@@ -10,6 +10,9 @@ use serde::Serialize;
 use std::sync::Arc;
 #[cfg(feature = "sts")]
 use crate::sts::StsDefinition;
+use crate::toc::ChapterInfo;
+use crate::toc::get_breadcrumb;
+use crate::uni::UnicodeRenderer;
 
 #[derive(Serialize)]
 struct HypInfo {
@@ -41,8 +44,8 @@ trait Replacer: FnMut(&Captures) -> String + Sized + Clone {}
 
 #[derive(Clone)]
 pub struct Renderer {
-    templates: Arc<Handlebars<'static>>,
-    db: Database,
+    pub(crate) templates: Arc<Handlebars<'static>>,
+    pub(crate) db: Database,
     contrib_regex: Regex,
     discouraged_regex: Regex,
     link_regex: Regex,
@@ -50,13 +53,13 @@ pub struct Renderer {
     bib_file: String,
     #[cfg(feature = "sts")]
     sts: StsDefinition,
+    uni: UnicodeRenderer,
 }
 
 #[derive(Clone)]
 enum ExpressionRenderer {
     ASCII,
-//    HTML,     // To be completed
-//    Unicode,  // To be completed
+    Unicode(UnicodeRenderer),
 #[cfg(feature = "sts")]
     STS(StsDefinition),
 }
@@ -65,6 +68,7 @@ impl ExpressionRenderer {
     fn render_statement(&self, sref: &StatementRef, database: &Database, use_provables: bool) -> Result<String, String> {
         match self {
             ExpressionRenderer::ASCII => self.render_formula(database.stmt_parse_result().get_formula(sref).ok_or("Formula not found")?, database, use_provables),
+            ExpressionRenderer::Unicode(uni) => uni.render_statement(sref),
             #[cfg(feature = "sts")]
             ExpressionRenderer::STS(sts) => sts.render_statement(sref, use_provables),
         }
@@ -73,6 +77,7 @@ impl ExpressionRenderer {
     fn render_formula(&self, formula: &Formula, database: &Database, use_provables: bool) -> Result<String, String> {
         match self {
             ExpressionRenderer::ASCII => Ok(format!("<pre>{}</pre>", formula.as_ref(database)).replace("wff ", " |- ")),
+            ExpressionRenderer::Unicode(uni) => uni.render_formula(formula),
             #[cfg(feature = "sts")]
             ExpressionRenderer::STS(sts) => sts.render_formula(formula, use_provables),
         }
@@ -81,17 +86,36 @@ impl ExpressionRenderer {
     fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize, use_provables: bool) -> Result<String, String> {
         match self {
             ExpressionRenderer::ASCII => Ok(format!("<pre> |- {}</pre>", &String::from_utf8_lossy(&proof_tree.exprs[tree_index]))),
+            ExpressionRenderer::Unicode(uni) => uni.render_formula(&ExpressionRenderer::as_formula(&uni.database, proof_tree, tree_index)?),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::STS(sts) => sts.render_expression(proof_tree, tree_index, use_provables),
+            ExpressionRenderer::STS(sts) => sts.render_formula(&ExpressionRenderer::as_formula(&sts.database, proof_tree, tree_index)?, use_provables),
         }
     }
 
     fn get_header(&self) -> String {
         match self {
             ExpressionRenderer::ASCII => "".to_string(),
+            ExpressionRenderer::Unicode(uni) => uni.get_header(),
             #[cfg(feature = "sts")]
             ExpressionRenderer::STS(sts) => sts.header.clone(),
         }
+    }
+
+    pub fn as_formula(database: &Database, proof_tree: &ProofTreeArray, tree_index: usize) -> Result<Formula, String> {
+        let formula_string = String::from_utf8_lossy(&proof_tree.exprs[tree_index]);
+        let nset = database.name_result();
+        let grammar = database.grammar_result();
+        let typecodes = grammar.typecodes();
+        println!("Going into parse_formula!");
+        let formula = grammar.parse_formula(
+            &mut formula_string.trim().split(" ").map(|t| {
+                nset.lookup_symbol(t.as_bytes()).unwrap().atom
+            }), 
+            &typecodes, 
+            nset
+        ).map_err(|diag| format!("{} - Could not parse formula: {:?}", formula_string, diag));
+        println!("Got out of parse_formula!");
+        formula
     }
 }
 
@@ -111,12 +135,13 @@ impl Renderer {
         let bibl_regex = Regex::new(r"\[([^ \n]+)\]").unwrap();
         Renderer {
             templates: Arc::new(templates),
-            db,
+            db: db.clone(),
             contrib_regex,
             discouraged_regex,
             link_regex,
             bibl_regex,
             bib_file: bib_file.unwrap_or("".to_string()),
+            uni: UnicodeRenderer { database: db },
             #[cfg(feature = "sts")]
             sts,
         }
@@ -125,6 +150,7 @@ impl Renderer {
     fn get_expression_renderer(&self, explorer: String) -> Option<ExpressionRenderer> {
         match explorer.as_str() {
             "mpeascii" => Some(ExpressionRenderer::ASCII),
+            "mpeuni" => Some(ExpressionRenderer::Unicode(self.uni.clone())),
             #[cfg(feature = "sts")]
             "mpests" => Some(ExpressionRenderer::STS(self.sts.clone())),
             _ => None,
@@ -134,9 +160,15 @@ impl Renderer {
     pub fn render_statement(&self, explorer: String, label: String) -> Option<String> {
         let sref = self.db.statement(&label)?;
         let expression_renderer = self.get_expression_renderer(explorer)?;
+        println!("Render page!");
 
         // Header
         let header = expression_renderer.get_header();
+        println!("Got header!");
+
+        // Table of Contents - Breadcrumb
+        let breadcrumb = get_breadcrumb(&self.db.get_outline_node(sref));
+        println!("Got breadcrumb!");
 
         // Comments
         let comment = if let Some(cmt) = sref.associated_comment() {
@@ -184,6 +216,7 @@ impl Renderer {
         } else {
             "(This statement does not have an associated comment)".to_string()
         };
+        println!("Got comments!");
 
         // Previous and next statements
         // let _prev_label = if let Some(prev_sref) = self.db.prev_sref(sref) { &String::from_utf8_lossy(prev_sref.label()) } else { "" };
@@ -205,6 +238,7 @@ impl Renderer {
             StatementType::Axiom|StatementType::Essential|StatementType::Floating =>
                 (false, match self.db.stmt_parse_result().get_formula(&sref) {
                     Some(formula) => {
+                        println!("Render formula!");
                         let proof_tree = self.db.get_syntax_proof_tree(formula);
                         proof_tree.with_steps(&self.db, |cur, stmt, hyps| StepInfo {
                             id: cur.to_string(),
@@ -227,9 +261,11 @@ impl Renderer {
             else { "Axiom".to_string() };
 
         // Statement assertion
+        println!("Render statement!");
         let expr = expression_renderer.render_statement(&sref, &self.db, is_proof).unwrap_or_else(|e| format!("Could not format assertion : {}", e));
 
         // Hypotheses
+        println!("Render hyps!");
         let hyps = self.db.scope_result().get(sref.label())?.as_ref(&self.db).essentials().map(|(label, formula)| {
             HypInfo {
                 label: as_str(self.db.name_result().atom_name(label)).to_string(),
