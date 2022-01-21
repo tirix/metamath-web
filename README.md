@@ -27,6 +27,10 @@ Just hit CTRL+C to stop the server once you're done browsing!
 
 Here are some features implemented, and some which are still lacking:
 
+- [x] support for 3 typesettings:
+  - [x] ASCII (`mpeascii`) - this is Metamath "source code"
+  - [x] Unicode (`mpeuni`) - this is the symbol-by-symbol typesetting
+  - [x] STS (`mpests`) - structured typesetting (`sts` feature needed)
 - [x] display axioms and definitions' syntax proof
 - [x] links to other theorems in comments
 - [x] links to bibliographic references (see command line option `-b`)
