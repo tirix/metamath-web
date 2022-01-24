@@ -1,5 +1,5 @@
 body {
-    color: #445;
+    color: #112;
     font-family: Bitter,'Times New Roman', Times, serif;
     font-weight: 200;
     line-height: 30px;
@@ -102,7 +102,7 @@ a.step:hover {
 }
 
 a {
-    color: #445;
+    color: #112;
 }
 
 a:hover {
@@ -126,40 +126,46 @@ qed::before {
 }
 
 nav {
+    color: #aab;
     margin-top: -50px;
+    float: right;
+    font-size: small;
+    line-height: revert;
+}
+
+nav.typesettings {
+    margin-top: -30px;
+}
+
+nav a {
+    color: #aab;
+}
+
+ol.toc a, nav a {
+    text-decoration: none;
+}
+
+nav div {
     float: right;
 }
 
-ol.breadcrumb li {
+ol.breadcrumb li, nav.typesettings li {
     display: inline;
 }
 
-ol.breadcrumb {
-    display: flex;
-    flex-direction: row-reverse;
-    margin: 0 0 -30px 0;
-    padding-left: 0;
-    font-size: small;
+ol.breadcrumb, nav.typesettings ul {
+    margin: 0;
 }
 
-ol.breadcrumb li:not(:last-child)::before {
+ol.breadcrumb li:not(:last-child)::after, nav.typesettings ul li:not(:last-child)::after {
     content: "|";
-    color: #aab;
     margin: 0 10px;
-}
-
-ol.breadcrumb a {
-    color: #aab;
-}
-
-ol.toc a, ol.breadcrumb a {
-    text-decoration: none;
 }
 
 mjx-container { margin: .3em 0em !important }
 mjx-container { float: left!important; width: inherit !important; text-align: left !important; }
 mjx-container { display: inline-block!important; }
-mjx-container a { color: #444455 !important; cursor: pointer; }
+mjx-container a { color: #112 !important; cursor: pointer; }
 mjx-container a:hover { color: #4494FF !important; }
 mjx-container { display: inline-block!important; padding: 5px; }
 

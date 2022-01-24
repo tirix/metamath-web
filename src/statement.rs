@@ -10,8 +10,8 @@ use serde::Serialize;
 use std::sync::Arc;
 #[cfg(feature = "sts")]
 use crate::sts::StsDefinition;
-use crate::toc::ChapterInfo;
-use crate::toc::get_breadcrumb;
+use crate::toc::NavInfo;
+use crate::toc::get_nav;
 use crate::uni::UnicodeRenderer;
 
 #[derive(Serialize)]
@@ -31,14 +31,21 @@ struct StepInfo {
 #[derive(Serialize)]
 struct PageInfo {
     header: String,
+    explorer: String,
     label: String,
     statement_type: String,
     comment: String,
     expr: String,
-    breadcrumb: Vec<ChapterInfo>,
+    nav: NavInfo,
     hyps: Vec<HypInfo>,
     is_proof: bool,
     steps: Vec<StepInfo>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct TypesettingInfo {
+    dir: &'static str, 
+    name: &'static str,
 }
 
 trait Replacer: FnMut(&Captures) -> String + Sized + Clone {}
@@ -159,15 +166,24 @@ impl Renderer {
         }
     }
 
+    pub(crate) fn get_typesettings() -> Vec<TypesettingInfo> {
+        vec![
+            TypesettingInfo { dir: "mpeascii", name: "ASCII" },
+            TypesettingInfo { dir: "mpeuni", name: "Unicode" },
+            #[cfg(feature = "sts")]
+            TypesettingInfo { dir: "mpests", name: "Structured"},
+        ]
+    }
+
     pub fn render_statement(&self, explorer: String, label: String) -> Option<String> {
         let sref = self.db.statement(&label.as_bytes())?;
-        let expression_renderer = self.get_expression_renderer(explorer)?;
+        let expression_renderer = self.get_expression_renderer(explorer.clone())?;
 
         // Header
         let header = expression_renderer.get_header();
 
-        // Table of Contents - Breadcrumb
-        let breadcrumb = get_breadcrumb(&self.db.get_outline_node(sref));
+        // Table of Contents - Breadcrumb - Prev and Next links
+        let nav = get_nav(&self.db.get_outline_node(sref));
 
         // Comments
         let comment = if let Some(cmt) = sref.associated_comment() {
@@ -270,7 +286,8 @@ impl Renderer {
 
         let info = PageInfo {
             header,
-            breadcrumb,
+            nav,
+            explorer,
             label,
             statement_type,
             comment,
