@@ -8,6 +8,7 @@ use serde::Serialize;
 #[derive(Serialize)]
 pub(crate) struct TocInfo {
     nav: NavInfo,
+    explorer: String,
     name: String,
     link: LinkInfo,
     children: Vec<ChapterInfo>,
@@ -80,7 +81,7 @@ pub(crate) fn get_breadcrumb(node: &OutlineNodeRef) -> Vec<ChapterInfo> {
 }
 
 impl Renderer {
-    pub fn render_toc(&self, _explorer: String, chapter_ref: usize) -> Option<String> {
+    pub fn render_toc(&self, explorer: String, chapter_ref: usize) -> Option<String> {
         let node = if chapter_ref == 0 {
             self.db.root_outline_node()
         } else {
@@ -88,6 +89,7 @@ impl Renderer {
         };
         let info = TocInfo {
             nav: get_nav(&node),
+            explorer,
             name: node.get_name().to_string(),
             link: (&node).into(),
             children: node.children_iter().map(|n| ChapterInfo {
