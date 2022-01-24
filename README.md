@@ -1,6 +1,8 @@
 # metamath-web
 A simple Metamath web server for Rust, displaying proofs in the most basic way.
 
+[View these Metamath pages in action here](http://metamath.tirix.org:3030/mpests/toc).
+
 ## How-to
 ### Installation
 First, [install rust](https://www.rust-lang.org/tools/install) if you don't have it yet on your system.
@@ -54,3 +56,4 @@ cargo run --features sts ../set.mm/set.mm
 * [metamath-knife](https://github.com/david-a-wheeler/metamath-knife) for parsing metamath file and obtaining proofs,
 * [handlebars](https://github.com/sunng87/handlebars-rust) for templating,
 * [warp](https://github.com/seanmonstar/warp) for the web server.
+* [nom](https://github.com/Geal/nom) for parsing the STS definition file.

@@ -1,5 +1,5 @@
 body {
-    color: #445;
+    color: #112;
     font-family: Bitter,'Times New Roman', Times, serif;
     font-weight: 200;
     line-height: 30px;
@@ -102,7 +102,7 @@ a.step:hover {
 }
 
 a {
-    color: #445;
+    color: #112;
 }
 
 a:hover {
@@ -165,7 +165,7 @@ ol.breadcrumb li:not(:last-child)::after, nav.typesettings ul li:not(:last-child
 mjx-container { margin: .3em 0em !important }
 mjx-container { float: left!important; width: inherit !important; text-align: left !important; }
 mjx-container { display: inline-block!important; }
-mjx-container a { color: #444455 !important; cursor: pointer; }
+mjx-container a { color: #112 !important; cursor: pointer; }
 mjx-container a:hover { color: #4494FF !important; }
 mjx-container { display: inline-block!important; padding: 5px; }
 
