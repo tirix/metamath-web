@@ -2,7 +2,6 @@ use metamath_knife::formula::TypeCode;
 use metamath_knife::formula::Label;
 use metamath_knife::Database;
 use metamath_knife::Formula;
-use metamath_knife::proof::ProofTreeArray;
 use metamath_knife::parser::as_str;
 use metamath_knife::parser::StatementRef;
 use std::sync::Arc;
@@ -29,7 +28,7 @@ impl StsScheme {
 
 #[derive(Clone, Debug)]
 pub struct StsDefinition {
-    database: Database,
+    pub(crate) database: Database,
     schemes: Arc<HashMap<TypeCode, Vec<StsScheme>>>,
     identifiers: Arc<HashMap<Label, TypeCode>>, 
     pub(crate) header: String,
@@ -99,20 +98,5 @@ impl StsDefinition {
     pub fn render_statement(&self, sref: &StatementRef, use_provables: bool) -> Result<String, String> {
         let formula = self.database.stmt_parse_result().get_formula(sref).ok_or("Unknown statement")?;
         self.render_formula(formula, use_provables)
-    }
-
-    pub fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize, use_provables: bool) -> Result<String, String> {
-        let formula_string = String::from_utf8_lossy(&proof_tree.exprs[tree_index]);
-        let nset = self.database.name_result();
-        let grammar = self.database.grammar_result();
-        let typecodes = grammar.typecodes();
-        let formula = grammar.parse_formula(
-            &mut formula_string.trim().split(" ").map(|t| {
-                nset.lookup_symbol(t.as_bytes()).unwrap().atom
-            }), 
-            &typecodes, 
-            nset
-        ).map_err(|diag| format!("{} - Could not parse formula: {:?}", formula_string, diag))?;
-        self.render_formula(&formula, use_provables)
     }
 }
