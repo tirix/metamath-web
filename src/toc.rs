@@ -1,4 +1,5 @@
 use crate::statement::Renderer;
+use crate::statement::TypesettingInfo;
 use metamath_knife::outline::OutlineNodeRef;
 use metamath_knife::parser::HeadingLevel;
 use serde::Serializer;
@@ -6,7 +7,7 @@ use serde::Serialize;
 
 #[derive(Serialize)]
 pub(crate) struct TocInfo {
-    breadcrumb: Vec<ChapterInfo>,
+    nav: NavInfo,
     name: String,
     link: LinkInfo,
     children: Vec<ChapterInfo>,
@@ -18,6 +19,13 @@ pub(crate) struct ChapterInfo {
     link: LinkInfo,
     stmt_level: bool,
     children: Vec<ChapterInfo>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct NavInfo {
+    breadcrumb: Vec<ChapterInfo>,
+    next: Option<ChapterInfo>,
+    typesettings: Vec<TypesettingInfo>,
 }
 
 enum LinkInfo {
@@ -36,6 +44,17 @@ impl From<&OutlineNodeRef<'_>> for LinkInfo {
     }
 }
 
+impl From<&OutlineNodeRef<'_>> for ChapterInfo {
+    fn from(node: &OutlineNodeRef<'_>) -> Self { 
+        ChapterInfo {
+            name: node.get_name().to_string(),
+            stmt_level: node.get_level() == HeadingLevel::Statement,
+            link: node.into(),
+            children: vec![],
+        }
+    }
+}
+
 impl Serialize for LinkInfo {
     fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error> where S: Serializer {
         match self {
@@ -46,13 +65,18 @@ impl Serialize for LinkInfo {
     }
 }
 
+pub(crate) fn get_nav(node: &OutlineNodeRef) -> NavInfo {
+    NavInfo {
+        breadcrumb: get_breadcrumb(node),
+        next: node.next().map(|n| (&n).into()),
+        typesettings: Renderer::get_typesettings(),
+    }
+}
+
 pub(crate) fn get_breadcrumb(node: &OutlineNodeRef) -> Vec<ChapterInfo> {
-    node.ancestors_iter().map(|node| ChapterInfo {
-        name: node.get_name().to_string(),
-        stmt_level: node.get_level() == HeadingLevel::Statement,
-        link: (&node).into(),
-        children: vec![],
-    }).collect()
+    let mut breadcrumb: Vec<ChapterInfo> = node.ancestors_iter().map(|node| (&node).into()).collect();
+    breadcrumb.reverse();
+    breadcrumb
 }
 
 impl Renderer {
@@ -63,19 +87,14 @@ impl Renderer {
             self.db.get_outline_node_by_ref(chapter_ref)
         };
         let info = TocInfo {
-            breadcrumb: get_breadcrumb(&node),
+            nav: get_nav(&node),
             name: node.get_name().to_string(),
             link: (&node).into(),
             children: node.children_iter().map(|n| ChapterInfo {
                 name: n.get_name().to_string(),
                 link: (&n).into(),
                 stmt_level: n.get_level() == HeadingLevel::Statement,
-                children: n.children_iter().map(|c| ChapterInfo {
-                    name: c.get_name().to_string(),
-                    link: (&c).into(),
-                    stmt_level: c.get_level() == HeadingLevel::Statement,
-                    children: vec![],
-                }).collect()
+                children: n.children_iter().map(|c| (&c).into()).collect()
             }).collect(),
         };
         Some(

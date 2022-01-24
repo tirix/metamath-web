@@ -126,34 +126,40 @@ qed::before {
 }
 
 nav {
+    color: #aab;
     margin-top: -50px;
+    float: right;
+    font-size: small;
+    line-height: revert;
+}
+
+nav.typesettings {
+    margin-top: -30px;
+}
+
+nav a {
+    color: #aab;
+}
+
+ol.toc a, nav a {
+    text-decoration: none;
+}
+
+nav div {
     float: right;
 }
 
-ol.breadcrumb li {
+ol.breadcrumb li, nav.typesettings li {
     display: inline;
 }
 
-ol.breadcrumb {
-    display: flex;
-    flex-direction: row-reverse;
-    margin: 0 0 -30px 0;
-    padding-left: 0;
-    font-size: small;
+ol.breadcrumb, nav.typesettings ul {
+    margin: 0;
 }
 
-ol.breadcrumb li:not(:last-child)::before {
+ol.breadcrumb li:not(:last-child)::after, nav.typesettings ul li:not(:last-child)::after {
     content: "|";
-    color: #aab;
     margin: 0 10px;
-}
-
-ol.breadcrumb a {
-    color: #aab;
-}
-
-ol.toc a, ol.breadcrumb a {
-    text-decoration: none;
 }
 
 mjx-container { margin: .3em 0em !important }

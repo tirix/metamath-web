@@ -37,6 +37,7 @@ Here are some features implemented, and some which are still lacking:
 - [ ] in-line math in comments
 - [x] summary of the theorems (hypotheses and statement) before the proof
 - [ ] navigation to next/previous theorem in the database
+- [x] navigation between the different typesettings
 - [x] table of content
 - [ ] distinct variables
 - [ ] list of uses

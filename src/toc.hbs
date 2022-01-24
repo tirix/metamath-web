@@ -11,12 +11,24 @@
 	<body>
 		<nav>
 			<ol class="breadcrumb">
-			{{#each breadcrumb}}
+			{{#each nav.breadcrumb}}
 				<li><a href="{{link}}" {{#if stmt_level}}class="label"{{/if}}>{{name}}</a></li>
 			{{/each}}
 			</ol>
+			{{#if nav.next}}
+				<div>Next ⟩ <a href="{{nav.next.link}}" {{#if nav.next.stmt_level}}class="label"{{/if}}>{{nav.next.name}}</a></div>
+			{{/if}}
 		</nav>
 		<h1><logo/>Metamath Proof Explorer</h1>
+		<nav class="typesettings">
+			<ul>
+			{{#each nav.typesettings}}
+				{{#if (ne dir ../explorer)}}
+					<li><a href="../{{dir}}/{{../link}}">{{name}}</a></li>
+				{{/if}}
+			{{/each}}
+			</ul>
+		</nav>
 		<hr />
 		<h2>Table of Contents - {{name}}</h2>
 		<ol class="toc">
