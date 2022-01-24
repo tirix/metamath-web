@@ -160,7 +160,7 @@ impl Renderer {
     }
 
     pub fn render_statement(&self, explorer: String, label: String) -> Option<String> {
-        let sref = self.db.statement(&label)?;
+        let sref = self.db.statement(&label.as_bytes())?;
         let expression_renderer = self.get_expression_renderer(explorer)?;
 
         // Header
