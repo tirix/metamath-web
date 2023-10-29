@@ -1,17 +1,17 @@
-use handlebars::Handlebars;
-use metamath_knife::statement::as_str;
-use metamath_knife::statement::StatementType;
-use metamath_knife::statement::StatementRef;
-use metamath_knife::Database;
-use metamath_knife::Formula;
-use metamath_knife::proof::ProofTreeArray;
-use regex::{Captures, Regex};
-use serde::Serialize;
-use std::sync::Arc;
 #[cfg(feature = "sts")]
 use crate::sts::StsDefinition;
 use crate::toc::NavInfo;
 use crate::uni::UnicodeRenderer;
+use handlebars::Handlebars;
+use metamath_knife::proof::ProofTreeArray;
+use metamath_knife::statement::as_str;
+use metamath_knife::statement::StatementRef;
+use metamath_knife::statement::StatementType;
+use metamath_knife::Database;
+use metamath_knife::Formula;
+use regex::{Captures, Regex};
+use serde::Serialize;
+use std::sync::Arc;
 
 #[derive(Serialize)]
 struct HypInfo {
@@ -43,7 +43,7 @@ struct PageInfo {
 
 #[derive(Serialize)]
 pub(crate) struct TypesettingInfo {
-    dir: &'static str, 
+    dir: &'static str,
     name: &'static str,
 }
 
@@ -69,35 +69,67 @@ pub struct Renderer {
 enum ExpressionRenderer {
     Ascii,
     Unicode(UnicodeRenderer),
-#[cfg(feature = "sts")]
+    #[cfg(feature = "sts")]
     Sts(StsDefinition),
 }
 
 impl ExpressionRenderer {
-    fn render_statement(&self, sref: &StatementRef, database: &Database, use_provables: bool) -> Result<String, String> {
+    fn render_statement(
+        &self,
+        sref: &StatementRef,
+        database: &Database,
+        use_provables: bool,
+    ) -> Result<String, String> {
         match self {
-            ExpressionRenderer::Ascii => self.render_formula(database.stmt_parse_result().get_formula(sref).ok_or("Formula not found")?, database, use_provables),
+            ExpressionRenderer::Ascii => self.render_formula(
+                database
+                    .stmt_parse_result()
+                    .get_formula(sref)
+                    .ok_or("Formula not found")?,
+                database,
+                use_provables,
+            ),
             ExpressionRenderer::Unicode(uni) => uni.render_statement(sref),
             #[cfg(feature = "sts")]
             ExpressionRenderer::Sts(sts) => sts.render_statement(sref, use_provables),
         }
     }
 
-    fn render_formula(&self, formula: &Formula, database: &Database, #[allow(unused_variables)] use_provables: bool) -> Result<String, String> {
+    fn render_formula(
+        &self,
+        formula: &Formula,
+        database: &Database,
+        #[allow(unused_variables)] use_provables: bool,
+    ) -> Result<String, String> {
         match self {
-            ExpressionRenderer::Ascii => Ok(format!("<pre>{}</pre>", formula.as_ref(database)).replace("wff ", " |- ")),
+            ExpressionRenderer::Ascii => {
+                Ok(format!("<pre>{}</pre>", formula.as_ref(database)).replace("wff ", " |- "))
+            }
             ExpressionRenderer::Unicode(uni) => uni.render_formula(formula),
             #[cfg(feature = "sts")]
             ExpressionRenderer::Sts(sts) => sts.render_formula(formula, use_provables),
         }
     }
 
-    fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize, #[allow(unused_variables)] use_provables: bool) -> Result<String, String> {
+    fn render_expression(
+        self,
+        proof_tree: &ProofTreeArray,
+        tree_index: usize,
+        #[allow(unused_variables)] use_provables: bool,
+    ) -> Result<String, String> {
         match self {
-            ExpressionRenderer::Ascii => Ok(format!("<pre> |- {}</pre>", &String::from_utf8_lossy(&proof_tree.exprs[tree_index]))),
-            ExpressionRenderer::Unicode(uni) => uni.render_formula(&ExpressionRenderer::as_formula(&uni.database, proof_tree, tree_index)?),
+            ExpressionRenderer::Ascii => Ok(format!(
+                "<pre> |- {}</pre>",
+                &String::from_utf8_lossy(&proof_tree.exprs[tree_index])
+            )),
+            ExpressionRenderer::Unicode(uni) => uni.render_formula(
+                &ExpressionRenderer::as_formula(&uni.database, proof_tree, tree_index)?,
+            ),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::Sts(sts) => sts.render_formula(&ExpressionRenderer::as_formula(&sts.database, proof_tree, tree_index)?, use_provables),
+            ExpressionRenderer::Sts(sts) => sts.render_formula(
+                &ExpressionRenderer::as_formula(&sts.database, proof_tree, tree_index)?,
+                use_provables,
+            ),
         }
     }
 
@@ -110,21 +142,30 @@ impl ExpressionRenderer {
         }
     }
 
-    pub fn as_formula(database: &Database, proof_tree: &ProofTreeArray, tree_index: usize) -> Result<Formula, String> {
+    pub fn as_formula(
+        database: &Database,
+        proof_tree: &ProofTreeArray,
+        tree_index: usize,
+    ) -> Result<Formula, String> {
         let formula_string = String::from_utf8_lossy(&proof_tree.exprs[tree_index]);
         let nset = database.name_result();
         let grammar = database.grammar_result();
         let provable_symbol = as_str(nset.atom_name(grammar.provable_typecode()));
-        let formula = grammar.parse_string(format!("{} {}", provable_symbol,formula_string.trim()).as_str(), nset)
+        let formula = grammar
+            .parse_string(
+                format!("{} {}", provable_symbol, formula_string.trim()).as_str(),
+                nset,
+            )
             .map_err(|diag| format!("{} - Could not parse formula: {:?}", formula_string, diag));
         formula
     }
 }
 
 impl Renderer {
-    pub(crate) fn new(db: Database, bib_file: Option<String>,
-        #[cfg(feature = "sts")]
-        sts: StsDefinition
+    pub(crate) fn new(
+        db: Database,
+        bib_file: Option<String>,
+        #[cfg(feature = "sts")] sts: StsDefinition,
     ) -> Renderer {
         let mut templates = Handlebars::new();
         templates.register_escape_fn(handlebars::no_escape);
@@ -135,7 +176,9 @@ impl Renderer {
             .register_template_string("toc", include_str!("toc.hbs"))
             .expect("Unable to parse table of contents template.");
         let contrib_regex = Regex::new(r"\((Contributed|Revised|Modified|Proof[ \n]+shortened)[ \n]+by[ \n]+(?s)(.+?),[ \n]+(\d{1,2}-\w\w\w-\d{4})\.\)").unwrap();
-        let discouraged_regex = Regex::new(r"\(New usage is discouraged\.\)|\(Proof modification is discouraged\.\)").unwrap();
+        let discouraged_regex =
+            Regex::new(r"\(New usage is discouraged\.\)|\(Proof modification is discouraged\.\)")
+                .unwrap();
         let math_regex = Regex::new(r"` (:?[^`]+) `").unwrap();
         let link_regex = Regex::new(r"\~ ([^ \n]+)[ \n]+").unwrap();
         let bibl_regex = Regex::new(r"\[([^ \n]+)\]").unwrap();
@@ -168,10 +211,19 @@ impl Renderer {
 
     pub(crate) fn get_typesettings() -> Vec<TypesettingInfo> {
         vec![
-            TypesettingInfo { dir: "mpeascii", name: "Ascii" },
-            TypesettingInfo { dir: "mpeuni", name: "Unicode" },
+            TypesettingInfo {
+                dir: "mpeascii",
+                name: "Ascii",
+            },
+            TypesettingInfo {
+                dir: "mpeuni",
+                name: "Unicode",
+            },
             #[cfg(feature = "sts")]
-            TypesettingInfo { dir: "mpests", name: "Structured"},
+            TypesettingInfo {
+                dir: "mpests",
+                name: "Structured",
+            },
         ]
     }
 
@@ -180,18 +232,28 @@ impl Renderer {
         let comment = self.contrib_regex.replace_all(&comment, |caps: &Captures| {
             format!(
                 "<span class=\"contrib\">({} by <a href=\"/contributors#{}\">{}</a>, {})</span>",
-                caps.get(1).expect("Contribution Regex did not return a contribution type").as_str(),
-                caps.get(2).expect("Contribution Regex did not return a contributor").as_str(),
-                caps.get(2).expect("Contribution Regex did not return a contributor").as_str(),
-                caps.get(3).expect("Contribution Regex did not return a contribution date").as_str(),
+                caps.get(1)
+                    .expect("Contribution Regex did not return a contribution type")
+                    .as_str(),
+                caps.get(2)
+                    .expect("Contribution Regex did not return a contributor")
+                    .as_str(),
+                caps.get(2)
+                    .expect("Contribution Regex did not return a contributor")
+                    .as_str(),
+                caps.get(3)
+                    .expect("Contribution Regex did not return a contribution date")
+                    .as_str(),
             )
         });
-        let comment = self.discouraged_regex.replace_all(&comment, |caps: &Captures| {
-            format!(
-                "<span class=\"discouraged\">{}</span>",
-                caps.get(0).unwrap().as_str(),
-            )
-        });
+        let comment = self
+            .discouraged_regex
+            .replace_all(&comment, |caps: &Captures| {
+                format!(
+                    "<span class=\"discouraged\">{}</span>",
+                    caps.get(0).unwrap().as_str(),
+                )
+            });
         let comment = self.math_regex.replace_all(&comment, |caps: &Captures| {
             format!(
                 "<span class=\"math\">{}</span>",
@@ -206,12 +268,11 @@ impl Renderer {
             )
         });
         let comment = comment.replace("~~", "~");
-        let comment = self.underline_regex.replace_all(&comment, |caps: &Captures| {
-            format!(
-                "<em>{}</em>",
-                caps.get(1).unwrap().as_str(),
-            )
-        });
+        let comment = self
+            .underline_regex
+            .replace_all(&comment, |caps: &Captures| {
+                format!("<em>{}</em>", caps.get(1).unwrap().as_str(),)
+            });
         let comment = self.bibl_regex.replace_all(&comment, |caps: &Captures| {
             format!(
                 "<a href=\"{}#{}\">{}</a>",
@@ -220,11 +281,11 @@ impl Renderer {
                 caps.get(1).map_or("", |m| m.as_str())
             )
         });
-    //            Double tildes ~~ shall be substituted with single tildes, see link in ~ dn1
+        //            Double tildes ~~ shall be substituted with single tildes, see link in ~ dn1
 
-    //            Anything inside <HTML> shall be unchanged
-    //            _..._ -> to italics <em></em>, except if part of external hyperlinks
-    //            See mmwtex.c
+        //            Anything inside <HTML> shall be unchanged
+        //            _..._ -> to italics <em></em>, except if part of external hyperlinks
+        //            See mmwtex.c
         comment.to_string()
     }
 
@@ -243,7 +304,9 @@ impl Renderer {
             let mut span = cmt.span();
             span.start += 2;
             span.end -= 3;
-            self.render_comment(&String::from_utf8_lossy(span.as_ref(&cmt.segment().segment.buffer)))
+            self.render_comment(&String::from_utf8_lossy(
+                span.as_ref(&cmt.segment().segment.buffer),
+            ))
         } else {
             "(This statement does not have an associated comment)".to_string()
         };
@@ -253,52 +316,86 @@ impl Renderer {
 
         // Proof or Syntax proof
         let (is_proof, steps) = match sref.statement_type() {
-            StatementType::Provable =>
-                (true, match self.db.get_proof_tree(sref) {
-                    Some(proof_tree) => proof_tree.with_logical_steps(&self.db, |cur, ix, stmt, hyps| StepInfo {
-                        id: ix.to_string(),
-                        hyps: hyps.iter().map(usize::to_string).collect::<Vec<String>>(),
-                        label: as_str(stmt.label()).to_string(),
-                        expr: expression_renderer.clone().render_expression(&proof_tree, cur, true)
-                            .unwrap_or_else(|e| format!("Could not format {} : {}", 
-                            &String::from_utf8_lossy(&proof_tree.exprs[cur]), e)),
-                        }),
+            StatementType::Provable => (
+                true,
+                match self.db.get_proof_tree(sref) {
+                    Some(proof_tree) => {
+                        proof_tree.with_logical_steps(&self.db, |cur, ix, stmt, hyps| StepInfo {
+                            id: ix.to_string(),
+                            hyps: hyps.iter().map(usize::to_string).collect::<Vec<String>>(),
+                            label: as_str(stmt.label()).to_string(),
+                            expr: expression_renderer
+                                .clone()
+                                .render_expression(&proof_tree, cur, true)
+                                .unwrap_or_else(|e| {
+                                    format!(
+                                        "Could not format {} : {}",
+                                        &String::from_utf8_lossy(&proof_tree.exprs[cur]),
+                                        e
+                                    )
+                                }),
+                        })
+                    }
                     None => vec![],
-                }),
-            StatementType::Axiom|StatementType::Essential|StatementType::Floating =>
-                (false, match self.db.stmt_parse_result().get_formula(&sref) {
+                },
+            ),
+            StatementType::Axiom | StatementType::Essential | StatementType::Floating => (
+                false,
+                match self.db.stmt_parse_result().get_formula(&sref) {
                     Some(formula) => {
                         let proof_tree = self.db.get_syntax_proof_tree(formula);
                         proof_tree.with_steps(&self.db, |cur, stmt, hyps| StepInfo {
                             id: cur.to_string(),
                             hyps: hyps.iter().map(usize::to_string).collect::<Vec<String>>(),
                             label: as_str(stmt.label()).to_string(),
-                            expr: expression_renderer.clone().render_expression(&proof_tree, cur, false)
-                                .unwrap_or_else(|e| format!("Could not format {} : {}", 
-                                &String::from_utf8_lossy(&proof_tree.exprs[cur]), e)),
-                            })
-                    },
+                            expr: expression_renderer
+                                .clone()
+                                .render_expression(&proof_tree, cur, false)
+                                .unwrap_or_else(|e| {
+                                    format!(
+                                        "Could not format {} : {}",
+                                        &String::from_utf8_lossy(&proof_tree.exprs[cur]),
+                                        e
+                                    )
+                                }),
+                        })
+                    }
                     None => vec![],
-                }),
+                },
+            ),
             _ => (false, vec![]),
         };
 
         // Statement type
-        let statement_type = if is_proof { "Theorem".to_string() }
-            else if steps.is_empty() { "Syntax definition".to_string() } 
-            else if label.starts_with("df-") { "Definition".to_string() }
-            else { "Axiom".to_string() };
+        let statement_type = if is_proof {
+            "Theorem".to_string()
+        } else if steps.is_empty() {
+            "Syntax definition".to_string()
+        } else if label.starts_with("df-") {
+            "Definition".to_string()
+        } else {
+            "Axiom".to_string()
+        };
 
         // Statement assertion
-        let expr = expression_renderer.render_statement(&sref, &self.db, is_proof).unwrap_or_else(|e| format!("Could not format assertion : {}", e));
+        let expr = expression_renderer
+            .render_statement(&sref, &self.db, is_proof)
+            .unwrap_or_else(|e| format!("Could not format assertion : {}", e));
 
         // Hypotheses
-        let hyps = self.db.scope_result().get(sref.label())?.as_ref(&self.db).essentials().map(|(label, formula)| {
-            HypInfo {
+        let hyps = self
+            .db
+            .scope_result()
+            .get(sref.label())?
+            .as_ref(&self.db)
+            .essentials()
+            .map(|(label, formula)| HypInfo {
                 label: as_str(self.db.name_result().atom_name(label)).to_string(),
-                expr: expression_renderer.render_formula(formula, &self.db, is_proof).unwrap_or_else(|e| e),
-            }
-        }).collect();
+                expr: expression_renderer
+                    .render_formula(formula, &self.db, is_proof)
+                    .unwrap_or_else(|e| e),
+            })
+            .collect();
 
         let info = PageInfo {
             header,

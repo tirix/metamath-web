@@ -1,10 +1,10 @@
 mod statement;
-mod toc;
-mod uni;
 #[cfg(feature = "sts")]
 mod sts;
 #[cfg(feature = "sts")]
 mod sts_parser;
+mod toc;
+mod uni;
 
 use crate::statement::Renderer;
 use clap::crate_version;
@@ -12,8 +12,8 @@ use clap::App as ClapApp;
 use clap::Arg;
 use clap::ArgMatches;
 use metamath_knife::database::DbOptions;
-use metamath_knife::Database;
 use metamath_knife::diag::DiagnosticClass;
+use metamath_knife::Database;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::net::IpAddr;
@@ -26,9 +26,7 @@ use warp::Filter;
 use sts_parser::parse_sts;
 
 fn positive_integer(val: &str) -> Result<(), String> {
-    u32::from_str(val)
-        .map(|_| ())
-        .map_err(|e| format!("{}", e))
+    u32::from_str(val).map(|_| ()).map_err(|e| format!("{}", e))
 }
 
 fn command_args() -> ArgMatches {
@@ -92,7 +90,9 @@ fn build_db(args: &ArgMatches) -> Result<Database, String> {
     db.parse(start, data);
     db.scope_pass();
     let diag = db.diag_notations(&[DiagnosticClass::Parse]);
-    if !diag.is_empty() { return Err(format!("{:?}", diag)); }
+    if !diag.is_empty() {
+        return Err(format!("{:?}", diag));
+    }
     db.typesetting_pass();
     db.grammar_pass();
     db.stmt_parse_pass();
@@ -107,7 +107,11 @@ fn with_renderer(
     warp::any().map(move || renderer.clone())
 }
 
-pub async fn get_theorem(explorer: String, label: String, renderer: Renderer) -> Result<impl warp::Reply, Rejection> {
+pub async fn get_theorem(
+    explorer: String,
+    label: String,
+    renderer: Renderer,
+) -> Result<impl warp::Reply, Rejection> {
     let label = label.replace(".html", "");
     match renderer.render_statement(explorer, label) {
         Some(html) => Ok(warp::reply::html(html)),
@@ -115,8 +119,12 @@ pub async fn get_theorem(explorer: String, label: String, renderer: Renderer) ->
     }
 }
 
-pub async fn get_toc(explorer: String, query: HashMap<String, String>, renderer: Renderer) -> Result<impl warp::Reply, Rejection> {
-    let chapter_ref : usize = query.get("ref").map_or(Ok(0), |c| c.parse()).unwrap_or(0);
+pub async fn get_toc(
+    explorer: String,
+    query: HashMap<String, String>,
+    renderer: Renderer,
+) -> Result<impl warp::Reply, Rejection> {
+    let chapter_ref: usize = query.get("ref").map_or(Ok(0), |c| c.parse()).unwrap_or(0);
     match renderer.render_toc(explorer, chapter_ref) {
         Some(html) => Ok(warp::reply::html(html)),
         None => Err(warp::reject::not_found()),
@@ -131,8 +139,8 @@ async fn main() {
         .unwrap_or(Path::new("."))
         .to_string_lossy()
         .to_string();
-    let addr : IpAddr = args.value_of("address").unwrap().parse().unwrap();
-    let port : u16 = args.value_of("port").unwrap().parse().unwrap();
+    let addr: IpAddr = args.value_of("address").unwrap().parse().unwrap();
+    let port: u16 = args.value_of("port").unwrap().parse().unwrap();
     match build_renderer(args) {
         Ok(renderer) => {
             let toc_renderer = renderer.clone();
@@ -145,18 +153,19 @@ async fn main() {
                 .and(warp::query::<HashMap<String, String>>())
                 .and(with_renderer(toc_renderer))
                 .and_then(get_toc);
-            let res = warp::path("static")
-                .and(warp::fs::dir("static"))
-                .map(|res: warp::fs::File|
-                    warp::reply::with_header(res, "cache-control", "public, max-age=31536000")
-                );
+            let res =
+                warp::path("static")
+                    .and(warp::fs::dir("static"))
+                    .map(|res: warp::fs::File| {
+                        warp::reply::with_header(res, "cache-control", "public, max-age=31536000")
+                    });
             let statics = warp::fs::dir(path);
             let routes = theorems.or(toc).or(res).or(statics);
             warp::serve(routes).run((addr, port)).await;
-        },
+        }
         Err(message) => {
             println!("Error: {}", message);
-        },
+        }
     }
 }
 
@@ -165,7 +174,9 @@ fn build_renderer(args: ArgMatches) -> Result<Renderer, String> {
     #[cfg(feature = "sts")]
     let sts = parse_sts(db.clone(), &args, "mathml")?;
     let bib_file = args.value_of("bib_file");
-    Ok(Renderer::new(db, bib_file.map(str::to_string),
+    Ok(Renderer::new(
+        db,
+        bib_file.map(str::to_string),
         #[cfg(feature = "sts")]
         sts,
     ))
