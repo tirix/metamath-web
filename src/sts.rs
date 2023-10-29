@@ -150,15 +150,12 @@ impl StsDefinition {
     pub fn check(&self) {
         let stmt_parse = self.database.stmt_parse_result();
         for sref in self.database.statements() {
-            match sref.statement_type() {
-                StatementType::Axiom => {
-                    if let Some(formula) = stmt_parse.get_formula(&sref) {
-                        if let Err(error) = self.format(formula.get_typecode(), formula) {
-                            eprintln!("{}", error);
-                        }
+            if sref.statement_type() == StatementType::Axiom {
+                if let Some(formula) = stmt_parse.get_formula(&sref) {
+                    if let Err(error) = self.format(formula.get_typecode(), formula) {
+                        eprintln!("{}", error);
                     }
                 }
-                _ => {}
             }
         }
     }
