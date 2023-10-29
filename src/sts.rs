@@ -1,6 +1,7 @@
 use metamath_knife::formula::Label;
 use metamath_knife::formula::Substitutions;
 use metamath_knife::formula::TypeCode;
+use metamath_knife::grammar::FormulaToken;
 use metamath_knife::statement::as_str;
 use metamath_knife::statement::StatementRef;
 use metamath_knife::Database;
@@ -148,11 +149,27 @@ impl StsDefinition {
     }
 
     pub fn check(&self) {
-        let stmt_parse = self.database.stmt_parse_result();
+        let provable = self.database.grammar_result().provable_typecode();
+        let nset = self.database.name_result();
         for sref in self.database.statements() {
             if sref.statement_type() == StatementType::Axiom {
-                if let Some(formula) = stmt_parse.get_formula(&sref) {
-                    if let Err(error) = self.format(formula.get_typecode(), formula) {
+                let mut tokens = sref.math_iter();
+                let typecode = nset.get_atom(&tokens.next().unwrap());
+                if typecode != provable {
+                    let formula = self
+                        .database
+                        .grammar_result()
+                        .parse_formula(
+                            &mut tokens.map(|t| FormulaToken {
+                                symbol: nset.get_atom(&t),
+                                span: metamath_knife::Span::NULL,
+                            }),
+                            &[typecode],
+                            false,
+                            nset,
+                        )
+                        .unwrap();
+                    if let Err(error) = self.format(typecode, &formula) {
                         eprintln!("{}", error);
                     }
                 }
