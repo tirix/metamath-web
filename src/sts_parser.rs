@@ -147,9 +147,10 @@ impl StsDefinition {
         for directive in directives {
             match directive {
                 Directive::Comment => {}
-                Directive::Scheme((i, m, s)) => {
-                    schemes.push(StsScheme::parse(db.clone(), i, m, s)?);
-                }
+                Directive::Scheme((i, m, s)) => match StsScheme::parse(db.clone(), i, m, s) {
+                    Ok(scheme) => schemes.push(scheme),
+                    Err(error) => eprintln!("{}", error),
+                },
                 Directive::Command(c) => {
                     command = c.to_string();
                 }
@@ -180,5 +181,9 @@ pub fn parse_sts(db: Database, args: &ArgMatches, format: &str) -> Result<StsDef
     let filename = format!("{}{}-{}.mmts", path, name, format);
     let contents =
         read_to_string(filename).expect("Something went wrong reading the STS definition file");
-    StsDefinition::parse(db, contents)
+    let definition = StsDefinition::parse(db, contents)?;
+    if args.is_present("check_sts") {
+        definition.check();
+    }
+    Ok(definition)
 }

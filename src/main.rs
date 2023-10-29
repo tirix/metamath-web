@@ -68,6 +68,14 @@ fn command_args() -> ArgMatches {
                 .short('b')
                 .takes_value(true),
         )
+        .arg(
+            Arg::new("check_sts")
+                .help(
+                    "Check that all constructs defined in the database are covered by the STS file",
+                )
+                .long("check-sts")
+                .short('S'),
+        )
         .get_matches()
 }
 

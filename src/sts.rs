@@ -5,6 +5,7 @@ use metamath_knife::statement::as_str;
 use metamath_knife::statement::StatementRef;
 use metamath_knife::Database;
 use metamath_knife::Formula;
+use metamath_knife::StatementType;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -144,5 +145,21 @@ impl StsDefinition {
             .get_formula(sref)
             .ok_or("Unknown statement")?;
         self.render_formula(formula, use_provables)
+    }
+
+    pub fn check(&self) {
+        let stmt_parse = self.database.stmt_parse_result();
+        for sref in self.database.statements() {
+            match sref.statement_type() {
+                StatementType::Axiom => {
+                    if let Some(formula) = stmt_parse.get_formula(&sref) {
+                        if let Err(error) = self.format(formula.get_typecode(), formula) {
+                            eprintln!("{}", error);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
     }
 }
