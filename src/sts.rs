@@ -1,10 +1,12 @@
 use metamath_knife::formula::Label;
 use metamath_knife::formula::Substitutions;
 use metamath_knife::formula::TypeCode;
+use metamath_knife::grammar::FormulaToken;
 use metamath_knife::statement::as_str;
 use metamath_knife::statement::StatementRef;
 use metamath_knife::Database;
 use metamath_knife::Formula;
+use metamath_knife::StatementType;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -144,5 +146,34 @@ impl StsDefinition {
             .get_formula(sref)
             .ok_or("Unknown statement")?;
         self.render_formula(formula, use_provables)
+    }
+
+    pub fn check(&self) {
+        let provable = self.database.grammar_result().provable_typecode();
+        let nset = self.database.name_result();
+        for sref in self.database.statements() {
+            if sref.statement_type() == StatementType::Axiom {
+                let mut tokens = sref.math_iter();
+                let typecode = nset.get_atom(&tokens.next().unwrap());
+                if typecode != provable {
+                    let formula = self
+                        .database
+                        .grammar_result()
+                        .parse_formula(
+                            &mut tokens.map(|t| FormulaToken {
+                                symbol: nset.get_atom(&t),
+                                span: metamath_knife::Span::NULL,
+                            }),
+                            &[typecode],
+                            false,
+                            nset,
+                        )
+                        .unwrap();
+                    if let Err(error) = self.format(typecode, &formula) {
+                        eprintln!("{}", error);
+                    }
+                }
+            }
+        }
     }
 }

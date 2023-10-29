@@ -115,19 +115,29 @@ impl ExpressionRenderer {
         self,
         proof_tree: &ProofTreeArray,
         tree_index: usize,
-        #[allow(unused_variables)] use_provables: bool,
+        use_provables: bool,
     ) -> Result<String, String> {
         match self {
             ExpressionRenderer::Ascii => Ok(format!(
                 "<pre> |- {}</pre>",
                 &String::from_utf8_lossy(&proof_tree.exprs[tree_index])
             )),
-            ExpressionRenderer::Unicode(uni) => uni.render_formula(
-                &ExpressionRenderer::as_formula(&uni.database, proof_tree, tree_index)?,
-            ),
+            ExpressionRenderer::Unicode(uni) => {
+                uni.render_formula(&ExpressionRenderer::as_formula(
+                    &uni.database,
+                    proof_tree,
+                    tree_index,
+                    use_provables,
+                )?)
+            }
             #[cfg(feature = "sts")]
             ExpressionRenderer::Sts(sts) => sts.render_formula(
-                &ExpressionRenderer::as_formula(&sts.database, proof_tree, tree_index)?,
+                &ExpressionRenderer::as_formula(
+                    &sts.database,
+                    proof_tree,
+                    tree_index,
+                    use_provables,
+                )?,
                 use_provables,
             ),
         }
@@ -146,18 +156,28 @@ impl ExpressionRenderer {
         database: &Database,
         proof_tree: &ProofTreeArray,
         tree_index: usize,
+        use_provables: bool,
     ) -> Result<Formula, String> {
         let formula_string = String::from_utf8_lossy(&proof_tree.exprs[tree_index]);
         let nset = database.name_result();
         let grammar = database.grammar_result();
-        let provable_symbol = as_str(nset.atom_name(grammar.provable_typecode()));
-        let formula = grammar
-            .parse_string(
-                format!("{} {}", provable_symbol, formula_string.trim()).as_str(),
-                nset,
-            )
-            .map_err(|diag| format!("{} - Could not parse formula: {:?}", formula_string, diag));
-        formula
+        let typecodes = if use_provables {
+            Box::new([grammar.provable_typecode()])
+        } else {
+            grammar.typecodes()
+        };
+        typecodes
+            .iter()
+            .find_map(|tc| {
+                grammar
+                    .parse_string(
+                        format!("{} {}", as_str(nset.atom_name(*tc)), formula_string.trim())
+                            .as_str(),
+                        nset,
+                    )
+                    .ok()
+            })
+            .ok_or_else(|| format!("{} - Could not parse formula", formula_string))
     }
 }
 
