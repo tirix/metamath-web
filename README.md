@@ -7,11 +7,10 @@ A simple Metamath web server for Rust, displaying proofs in the most basic way.
 ### Installation
 First, [install rust](https://www.rust-lang.org/tools/install) if you don't have it yet on your system.
 
-Unfortunately, as long as `metamath-knife` is not on crate.io, one has to clone both `metamath-knife` and this repository:
+Clone this repository, and `set.mm` or the database you want to work with:
 ```
 git clone https://github.com/metamath/set.mm.git –-depth 1
 git clone https://github.com/tirix/metamath-web.git
-git clone https://github.com/david-a-wheeler/metamath-knife.git
 ```
 ### Running the server
 The following commands can then be used to launch the server:
@@ -38,7 +37,7 @@ Here are some features implemented, and some which are still lacking:
 - [x] links to bibliographic references (see command line option `-b`)
 - [ ] in-line math in comments
 - [x] summary of the theorems (hypotheses and statement) before the proof
-- [ ] navigation to next/previous theorem in the database
+- [x] navigation to next/previous theorem in the database
 - [x] navigation between the different typesettings
 - [x] table of content
 - [ ] distinct variables
