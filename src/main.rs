@@ -31,7 +31,7 @@ fn positive_integer(val: &str) -> Result<(), String> {
         .map_err(|e| format!("{}", e))
 }
 
-fn command_args<'a>() -> ArgMatches {
+fn command_args() -> ArgMatches {
     ClapApp::new("metamath-web")
         .version(crate_version!())
         .about("A web server providing Metamath pages")

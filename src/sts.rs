@@ -68,7 +68,7 @@ impl StsDefinition {
                     let sref = self.database.statement_by_label(*label)?;
                     let variable_atom = nset.var_atom(sref)?;
                     let variable_token = as_str(nset.atom_name(variable_atom));
-                    let subformula_typecode = self.identifiers.get(&label)?;
+                    let subformula_typecode = self.identifiers.get(label)?;
                     let formatted_substring = self.format(*subformula_typecode, subformula).ok()?;
                     let pattern = format!("#{}#", variable_token).to_string();
                     formatted_string = formatted_string.replace(&pattern, &formatted_substring);
@@ -82,10 +82,7 @@ impl StsDefinition {
     fn format(&self, typecode: TypeCode, formula: &Formula) -> Result<String, String> {
         let nset = self.database.name_result();
         for scheme in self.schemes.get(&typecode).ok_or_else(|| format!("No typesetting found for typecode {:?}", typecode))? {
-            match self.apply_scheme(scheme, formula) {
-                Some(formatted_string) => { return Ok(formatted_string) },
-                None => { },
-            }
+            if let Some(formatted_string) = self.apply_scheme(scheme, formula) { return Ok(formatted_string) }
         }
         Err(format!("No typesetting found for {} with typecode {}", formula.as_ref(&self.database), as_str(nset.atom_name(typecode))))
     }
@@ -94,7 +91,7 @@ impl StsDefinition {
         let grammar = self.database.grammar_result();
         let typecode = if use_provables { grammar.provable_typecode() } else { formula.get_typecode() };
         let display = self.display.clone();
-        Ok(display.replace("###", &self.format(typecode, &formula)?))
+        Ok(display.replace("###", &self.format(typecode, formula)?))
     }
 
     pub fn render_statement(&self, sref: &StatementRef, use_provables: bool) -> Result<String, String> {

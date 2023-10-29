@@ -63,7 +63,7 @@ impl Serialize for LinkInfo {
     fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error> where S: Serializer {
         match self {
             LinkInfo::Toc => serializer.serialize_str("toc"),
-            LinkInfo::StatementRef(name) => serializer.serialize_str(&name),
+            LinkInfo::StatementRef(name) => serializer.serialize_str(name),
             LinkInfo::ChapterRef(chapter_ref) => serializer.serialize_str(&format!("toc?ref={}", chapter_ref)),
         }
     }

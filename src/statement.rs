@@ -67,46 +67,46 @@ pub struct Renderer {
 
 #[derive(Clone)]
 enum ExpressionRenderer {
-    ASCII,
+    Ascii,
     Unicode(UnicodeRenderer),
 #[cfg(feature = "sts")]
-    STS(StsDefinition),
+    Sts(StsDefinition),
 }
 
 impl ExpressionRenderer {
     fn render_statement(&self, sref: &StatementRef, database: &Database, use_provables: bool) -> Result<String, String> {
         match self {
-            ExpressionRenderer::ASCII => self.render_formula(database.stmt_parse_result().get_formula(sref).ok_or("Formula not found")?, database, use_provables),
+            ExpressionRenderer::Ascii => self.render_formula(database.stmt_parse_result().get_formula(sref).ok_or("Formula not found")?, database, use_provables),
             ExpressionRenderer::Unicode(uni) => uni.render_statement(sref),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::STS(sts) => sts.render_statement(sref, use_provables),
+            ExpressionRenderer::Sts(sts) => sts.render_statement(sref, use_provables),
         }
     }
 
-    fn render_formula(&self, formula: &Formula, database: &Database, use_provables: bool) -> Result<String, String> {
+    fn render_formula(&self, formula: &Formula, database: &Database, #[allow(unused_variables)] use_provables: bool) -> Result<String, String> {
         match self {
-            ExpressionRenderer::ASCII => Ok(format!("<pre>{}</pre>", formula.as_ref(database)).replace("wff ", " |- ")),
+            ExpressionRenderer::Ascii => Ok(format!("<pre>{}</pre>", formula.as_ref(database)).replace("wff ", " |- ")),
             ExpressionRenderer::Unicode(uni) => uni.render_formula(formula),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::STS(sts) => sts.render_formula(formula, use_provables),
+            ExpressionRenderer::Sts(sts) => sts.render_formula(formula, use_provables),
         }
     }
 
-    fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize, use_provables: bool) -> Result<String, String> {
+    fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize, #[allow(unused_variables)] use_provables: bool) -> Result<String, String> {
         match self {
-            ExpressionRenderer::ASCII => Ok(format!("<pre> |- {}</pre>", &String::from_utf8_lossy(&proof_tree.exprs[tree_index]))),
+            ExpressionRenderer::Ascii => Ok(format!("<pre> |- {}</pre>", &String::from_utf8_lossy(&proof_tree.exprs[tree_index]))),
             ExpressionRenderer::Unicode(uni) => uni.render_formula(&ExpressionRenderer::as_formula(&uni.database, proof_tree, tree_index)?),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::STS(sts) => sts.render_formula(&ExpressionRenderer::as_formula(&sts.database, proof_tree, tree_index)?, use_provables),
+            ExpressionRenderer::Sts(sts) => sts.render_formula(&ExpressionRenderer::as_formula(&sts.database, proof_tree, tree_index)?, use_provables),
         }
     }
 
     fn get_header(&self) -> String {
         match self {
-            ExpressionRenderer::ASCII => "".to_string(),
+            ExpressionRenderer::Ascii => "".to_string(),
             ExpressionRenderer::Unicode(uni) => uni.get_header(),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::STS(sts) => sts.header.clone(),
+            ExpressionRenderer::Sts(sts) => sts.header.clone(),
         }
     }
 
@@ -158,17 +158,17 @@ impl Renderer {
 
     fn get_expression_renderer(&self, explorer: String) -> Option<ExpressionRenderer> {
         match explorer.as_str() {
-            "mpeascii" => Some(ExpressionRenderer::ASCII),
+            "mpeascii" => Some(ExpressionRenderer::Ascii),
             "mpeuni" => Some(ExpressionRenderer::Unicode(self.uni.clone())),
             #[cfg(feature = "sts")]
-            "mpests" => Some(ExpressionRenderer::STS(self.sts.clone())),
+            "mpests" => Some(ExpressionRenderer::Sts(self.sts.clone())),
             _ => None,
         }
     }
 
     pub(crate) fn get_typesettings() -> Vec<TypesettingInfo> {
         vec![
-            TypesettingInfo { dir: "mpeascii", name: "ASCII" },
+            TypesettingInfo { dir: "mpeascii", name: "Ascii" },
             TypesettingInfo { dir: "mpeuni", name: "Unicode" },
             #[cfg(feature = "sts")]
             TypesettingInfo { dir: "mpests", name: "Structured"},
@@ -229,7 +229,7 @@ impl Renderer {
     }
 
     pub fn render_statement(&self, explorer: String, label: String) -> Option<String> {
-        let sref = self.db.statement(&label.as_bytes())?;
+        let sref = self.db.statement(label.as_bytes())?;
         let expression_renderer = self.get_expression_renderer(explorer.clone())?;
 
         // Header
@@ -285,7 +285,7 @@ impl Renderer {
 
         // Statement type
         let statement_type = if is_proof { "Theorem".to_string() }
-            else if steps.len()==0 { "Syntax definition".to_string() } 
+            else if steps.is_empty() { "Syntax definition".to_string() } 
             else if label.starts_with("df-") { "Definition".to_string() }
             else { "Axiom".to_string() };
 
