@@ -1,7 +1,7 @@
 use handlebars::Handlebars;
-use metamath_knife::parser::as_str;
-use metamath_knife::parser::StatementType;
-use metamath_knife::parser::StatementRef;
+use metamath_knife::statement::as_str;
+use metamath_knife::statement::StatementType;
+use metamath_knife::statement::StatementRef;
 use metamath_knife::Database;
 use metamath_knife::Formula;
 use metamath_knife::proof::ProofTreeArray;
@@ -11,7 +11,6 @@ use std::sync::Arc;
 #[cfg(feature = "sts")]
 use crate::sts::StsDefinition;
 use crate::toc::NavInfo;
-use crate::toc::get_nav;
 use crate::uni::UnicodeRenderer;
 
 #[derive(Serialize)]
@@ -59,6 +58,8 @@ pub struct Renderer {
     link_regex: Regex,
     bibl_regex: Regex,
     bib_file: String,
+    math_regex: Regex,
+    underline_regex: Regex,
     #[cfg(feature = "sts")]
     sts: StsDefinition,
     uni: UnicodeRenderer,
@@ -66,46 +67,46 @@ pub struct Renderer {
 
 #[derive(Clone)]
 enum ExpressionRenderer {
-    ASCII,
+    Ascii,
     Unicode(UnicodeRenderer),
 #[cfg(feature = "sts")]
-    STS(StsDefinition),
+    Sts(StsDefinition),
 }
 
 impl ExpressionRenderer {
     fn render_statement(&self, sref: &StatementRef, database: &Database, use_provables: bool) -> Result<String, String> {
         match self {
-            ExpressionRenderer::ASCII => self.render_formula(database.stmt_parse_result().get_formula(sref).ok_or("Formula not found")?, database, use_provables),
+            ExpressionRenderer::Ascii => self.render_formula(database.stmt_parse_result().get_formula(sref).ok_or("Formula not found")?, database, use_provables),
             ExpressionRenderer::Unicode(uni) => uni.render_statement(sref),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::STS(sts) => sts.render_statement(sref, use_provables),
+            ExpressionRenderer::Sts(sts) => sts.render_statement(sref, use_provables),
         }
     }
 
-    fn render_formula(&self, formula: &Formula, database: &Database, use_provables: bool) -> Result<String, String> {
+    fn render_formula(&self, formula: &Formula, database: &Database, #[allow(unused_variables)] use_provables: bool) -> Result<String, String> {
         match self {
-            ExpressionRenderer::ASCII => Ok(format!("<pre>{}</pre>", formula.as_ref(database)).replace("wff ", " |- ")),
+            ExpressionRenderer::Ascii => Ok(format!("<pre>{}</pre>", formula.as_ref(database)).replace("wff ", " |- ")),
             ExpressionRenderer::Unicode(uni) => uni.render_formula(formula),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::STS(sts) => sts.render_formula(formula, use_provables),
+            ExpressionRenderer::Sts(sts) => sts.render_formula(formula, use_provables),
         }
     }
 
-    fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize, use_provables: bool) -> Result<String, String> {
+    fn render_expression(self, proof_tree: &ProofTreeArray, tree_index: usize, #[allow(unused_variables)] use_provables: bool) -> Result<String, String> {
         match self {
-            ExpressionRenderer::ASCII => Ok(format!("<pre> |- {}</pre>", &String::from_utf8_lossy(&proof_tree.exprs[tree_index]))),
+            ExpressionRenderer::Ascii => Ok(format!("<pre> |- {}</pre>", &String::from_utf8_lossy(&proof_tree.exprs[tree_index]))),
             ExpressionRenderer::Unicode(uni) => uni.render_formula(&ExpressionRenderer::as_formula(&uni.database, proof_tree, tree_index)?),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::STS(sts) => sts.render_formula(&ExpressionRenderer::as_formula(&sts.database, proof_tree, tree_index)?, use_provables),
+            ExpressionRenderer::Sts(sts) => sts.render_formula(&ExpressionRenderer::as_formula(&sts.database, proof_tree, tree_index)?, use_provables),
         }
     }
 
     fn get_header(&self) -> String {
         match self {
-            ExpressionRenderer::ASCII => "".to_string(),
+            ExpressionRenderer::Ascii => "".to_string(),
             ExpressionRenderer::Unicode(uni) => uni.get_header(),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::STS(sts) => sts.header.clone(),
+            ExpressionRenderer::Sts(sts) => sts.header.clone(),
         }
     }
 
@@ -113,14 +114,9 @@ impl ExpressionRenderer {
         let formula_string = String::from_utf8_lossy(&proof_tree.exprs[tree_index]);
         let nset = database.name_result();
         let grammar = database.grammar_result();
-        let typecodes = grammar.typecodes();
-        let formula = grammar.parse_formula(
-            &mut formula_string.trim().split(" ").map(|t| {
-                nset.lookup_symbol(t.as_bytes()).unwrap().atom
-            }), 
-            &typecodes, 
-            nset
-        ).map_err(|diag| format!("{} - Could not parse formula: {:?}", formula_string, diag));
+        let provable_symbol = as_str(nset.atom_name(grammar.provable_typecode()));
+        let formula = grammar.parse_string(format!("{} {}", provable_symbol,formula_string.trim()).as_str(), nset)
+            .map_err(|diag| format!("{} - Could not parse formula: {:?}", formula_string, diag));
         formula
     }
 }
@@ -138,10 +134,12 @@ impl Renderer {
         templates
             .register_template_string("toc", include_str!("toc.hbs"))
             .expect("Unable to parse table of contents template.");
-        let contrib_regex = Regex::new(r"\((Contributed|Revised|Proof[ \n]+shortened)[ \n]+by[ \n]+(?s)(.+?),[ \n]+(\d{1,2}-\w\w\w-\d{4})\.\)").unwrap();
+        let contrib_regex = Regex::new(r"\((Contributed|Revised|Modified|Proof[ \n]+shortened)[ \n]+by[ \n]+(?s)(.+?),[ \n]+(\d{1,2}-\w\w\w-\d{4})\.\)").unwrap();
         let discouraged_regex = Regex::new(r"\(New usage is discouraged\.\)|\(Proof modification is discouraged\.\)").unwrap();
+        let math_regex = Regex::new(r"` (:?[^`]+) `").unwrap();
         let link_regex = Regex::new(r"\~ ([^ \n]+)[ \n]+").unwrap();
         let bibl_regex = Regex::new(r"\[([^ \n]+)\]").unwrap();
+        let underline_regex = Regex::new(r"[ \n]_([^_]+)_").unwrap();
         Renderer {
             templates: Arc::new(templates),
             db: db.clone(),
@@ -150,6 +148,8 @@ impl Renderer {
             link_regex,
             bibl_regex,
             bib_file: bib_file.unwrap_or("".to_string()),
+            math_regex,
+            underline_regex,
             uni: UnicodeRenderer { database: db },
             #[cfg(feature = "sts")]
             sts,
@@ -158,76 +158,92 @@ impl Renderer {
 
     fn get_expression_renderer(&self, explorer: String) -> Option<ExpressionRenderer> {
         match explorer.as_str() {
-            "mpeascii" => Some(ExpressionRenderer::ASCII),
+            "mpeascii" => Some(ExpressionRenderer::Ascii),
             "mpeuni" => Some(ExpressionRenderer::Unicode(self.uni.clone())),
             #[cfg(feature = "sts")]
-            "mpests" => Some(ExpressionRenderer::STS(self.sts.clone())),
+            "mpests" => Some(ExpressionRenderer::Sts(self.sts.clone())),
             _ => None,
         }
     }
 
     pub(crate) fn get_typesettings() -> Vec<TypesettingInfo> {
         vec![
-            TypesettingInfo { dir: "mpeascii", name: "ASCII" },
+            TypesettingInfo { dir: "mpeascii", name: "Ascii" },
             TypesettingInfo { dir: "mpeuni", name: "Unicode" },
             #[cfg(feature = "sts")]
             TypesettingInfo { dir: "mpests", name: "Structured"},
         ]
     }
 
+    pub(crate) fn render_comment(&self, comment: &str) -> String {
+        let comment = comment.replace("\n\n", "</p>\n<p>");
+        let comment = self.contrib_regex.replace_all(&comment, |caps: &Captures| {
+            format!(
+                "<span class=\"contrib\">({} by <a href=\"/contributors#{}\">{}</a>, {})</span>",
+                caps.get(1).expect("Contribution Regex did not return a contribution type").as_str(),
+                caps.get(2).expect("Contribution Regex did not return a contributor").as_str(),
+                caps.get(2).expect("Contribution Regex did not return a contributor").as_str(),
+                caps.get(3).expect("Contribution Regex did not return a contribution date").as_str(),
+            )
+        });
+        let comment = self.discouraged_regex.replace_all(&comment, |caps: &Captures| {
+            format!(
+                "<span class=\"discouraged\">{}</span>",
+                caps.get(0).unwrap().as_str(),
+            )
+        });
+        let comment = self.math_regex.replace_all(&comment, |caps: &Captures| {
+            format!(
+                "<span class=\"math\">{}</span>",
+                caps.get(1).unwrap().as_str()
+            )
+        });
+        let comment = self.link_regex.replace_all(&comment, |caps: &Captures| {
+            format!(
+                "<a href=\"{}\" class=\"label\">{}</a> ",
+                caps.get(1).map_or("#", |m| m.as_str()),
+                caps.get(1).map_or("-", |m| m.as_str())
+            )
+        });
+        let comment = comment.replace("~~", "~");
+        let comment = self.underline_regex.replace_all(&comment, |caps: &Captures| {
+            format!(
+                "<em>{}</em>",
+                caps.get(1).unwrap().as_str(),
+            )
+        });
+        let comment = self.bibl_regex.replace_all(&comment, |caps: &Captures| {
+            format!(
+                "<a href=\"{}#{}\">{}</a>",
+                self.bib_file,
+                caps.get(1).map_or("", |m| m.as_str()),
+                caps.get(1).map_or("", |m| m.as_str())
+            )
+        });
+    //            Double tildes ~~ shall be substituted with single tildes, see link in ~ dn1
+
+    //            Anything inside <HTML> shall be unchanged
+    //            _..._ -> to italics <em></em>, except if part of external hyperlinks
+    //            See mmwtex.c
+        comment.to_string()
+    }
+
     pub fn render_statement(&self, explorer: String, label: String) -> Option<String> {
-        let sref = self.db.statement(&label.as_bytes())?;
+        let sref = self.db.statement(label.as_bytes())?;
         let expression_renderer = self.get_expression_renderer(explorer.clone())?;
 
         // Header
         let header = expression_renderer.get_header();
 
         // Table of Contents - Breadcrumb - Prev and Next links
-        let nav = get_nav(&self.db.get_outline_node(sref));
+        let nav = self.get_nav(&self.db.get_outline_node(sref));
 
         // Comments
         let comment = if let Some(cmt) = sref.associated_comment() {
             let mut span = cmt.span();
             span.start += 2;
             span.end -= 3;
-            let comment = String::from_utf8_lossy(span.as_ref(&cmt.segment().segment.buffer))
-                .replace("\n\n", "</p>\n<p>");
-            let comment = self.contrib_regex.replace_all(&comment, |caps: &Captures| {
-                format!(
-                    "<span class=\"contrib\">({} by <a href=\"/contributors#{}\">{}</a>, {})</span>",
-                    caps.get(1).expect("Contribution Regex did not return a contribution type").as_str(),
-                    caps.get(2).expect("Contribution Regex did not return a contributor").as_str(),
-                    caps.get(2).expect("Contribution Regex did not return a contributor").as_str(),
-                    caps.get(3).expect("Contribution Regex did not return a contribution date").as_str(),
-                )
-            });
-            let comment = self.discouraged_regex.replace_all(&comment, |caps: &Captures| {
-                format!(
-                    "<span class=\"discouraged\">{}</span>",
-                    caps.get(0).unwrap().as_str(),
-                )
-            });
-            let comment = self.link_regex.replace_all(&comment, |caps: &Captures| {
-                format!(
-                    "<a href=\"{}\" class=\"label\">{}</a> ",
-                    caps.get(1).map_or("#", |m| m.as_str()),
-                    caps.get(1).map_or("-", |m| m.as_str())
-                )
-            });
-            let comment = self.bibl_regex.replace_all(&comment, |caps: &Captures| {
-                format!(
-                    "<a href=\"{}#{}\">{}</a>",
-                    self.bib_file,
-                    caps.get(1).map_or("", |m| m.as_str()),
-                    caps.get(1).map_or("", |m| m.as_str())
-                )
-            });
-//            Double tildes ~~ shall be substituted with single tildes, see link in ~ dn1
-
-//            Anything inside <HTML> shall be unchanged
-//            _..._ -> to italics <em></em>, except if part of external hyperlinks
-//            See mmwtex.c
-            comment.to_string()
+            self.render_comment(&String::from_utf8_lossy(span.as_ref(&cmt.segment().segment.buffer)))
         } else {
             "(This statement does not have an associated comment)".to_string()
         };
@@ -269,7 +285,7 @@ impl Renderer {
 
         // Statement type
         let statement_type = if is_proof { "Theorem".to_string() }
-            else if steps.len()==0 { "Syntax definition".to_string() } 
+            else if steps.is_empty() { "Syntax definition".to_string() } 
             else if label.starts_with("df-") { "Definition".to_string() }
             else { "Axiom".to_string() };
 

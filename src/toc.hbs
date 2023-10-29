@@ -7,6 +7,11 @@
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200;500&family=Bitter:wght@200;500;700&display=swap">
 		{{header}}
+		<style>
+			:root {
+				--chapter-number: "{{#each nav.breadcrumb}}{{index}}{{#if index}}.{{/if}}{{/each}}";
+			}
+		</style>
 	</head>
 	<body>
 		<nav>
@@ -30,7 +35,7 @@
 			</ul>
 		</nav>
 		<hr />
-		<h2>Table of Contents - {{name}}</h2>
+		<h2>Table of Contents - {{#each nav.breadcrumb}}{{index}}{{#if index}}.{{/if}}{{/each}} {{name}}</h2>
 		<ol class="toc">
 			{{#each children}}
 				<li><a href="{{link}}" {{#if stmt_level}}class="label"{{/if}}>{{name}}</a>

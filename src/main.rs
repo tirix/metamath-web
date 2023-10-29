@@ -31,7 +31,7 @@ fn positive_integer(val: &str) -> Result<(), String> {
         .map_err(|e| format!("{}", e))
 }
 
-fn command_args<'a>() -> ArgMatches {
+fn command_args() -> ArgMatches {
     ClapApp::new("metamath-web")
         .version(crate_version!())
         .about("A web server providing Metamath pages")
@@ -91,7 +91,7 @@ fn build_db(args: &ArgMatches) -> Result<Database, String> {
     println!("Starting up...");
     db.parse(start, data);
     db.scope_pass();
-    let diag = db.diag_notations(&[DiagnosticClass::Parse], |diag| { format!("{:?}", diag) });
+    let diag = db.diag_notations(&[DiagnosticClass::Parse]);
     if !diag.is_empty() { return Err(format!("{:?}", diag)); }
     db.typesetting_pass();
     db.grammar_pass();

@@ -15,8 +15,8 @@ use nom::{
     sequence::tuple,
     sequence::terminated,
 };
-use metamath_knife::parser::as_str;
-use metamath_knife::Database;
+use metamath_knife::{statement::as_str, grammar::FormulaToken};
+use metamath_knife::{Database, Span};
 use metamath_knife::formula::TypeCode;
 use regex::Regex;
 use crate::sts::{StsScheme, StsDefinition};
@@ -30,11 +30,11 @@ impl StsScheme {
             symbols.push(nset.lookup_symbol(t.as_bytes())
                 .ok_or(format!("Unknown symbol {}", t))?.atom);
         }
-        let typecode = symbols[0].clone();
+        let typecode = symbols[0];
         let all_typecodes = grammar.typecodes();
         let this_typecode = &[typecode];
         let typecodes : &[TypeCode] = if all_typecodes.contains(&typecode) { this_typecode } else { &all_typecodes };
-        let formula = grammar.parse_formula(&mut symbols.into_iter().skip(1), &typecodes, nset).map_err(|diag|
+        let formula = grammar.parse_formula(&mut symbols.into_iter().skip(1).map(|t| FormulaToken{ symbol: t, span: Span::NULL }), typecodes, true, nset).map_err(|diag|
             format!("Could not parse formula: {:?} ({}) {}", diag, subst, as_str(nset.atom_name(typecode))))?;
         Ok(Self::new(is_identifier, typecode, formula, subst))
     }
@@ -50,7 +50,7 @@ enum Directive<'a> {
     Header(&'a str),
 }
 
-fn is_mm_token(chr: char) -> bool { chr >= '\x21' && chr <= '\x7E' && chr != '$' }
+fn is_mm_token(chr: char) -> bool { ('\x21'..='\x7E').contains(&chr) && chr != '$' }
 fn comment(input: &str) -> IResult<&str, Directive> { value(Directive::Comment, alt((
         delimited(tag("$("), take_until("$)"), tag("$)")), 
         // Also considering whitespace between other directives as comment
@@ -87,7 +87,7 @@ impl StsDefinition {
         let mut inline = "".to_string();
         let mut command = "".to_string();
         let (remaining, directives) = file(&input).map_err(|e| { format!("Parse Error: {}", e) })?;
-        (remaining.len() == 0).then(|| ()).ok_or("File could not be parsed completely!")?;
+        remaining.is_empty().then_some(()).ok_or("File could not be parsed completely!")?;
         for directive in directives {
             match directive {
                 Directive::Comment => { },
