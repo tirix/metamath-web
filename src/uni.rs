@@ -17,7 +17,7 @@ impl UnicodeRenderer {
     }
 
     pub(crate) fn render_formula(&self, formula: &Formula) -> Result<String, String> {
-        let mut output: String = "".into();
+        let mut output: String = "⊢ ".into();
         //        write!(output, "{} ", as_str(if use_provables
         let typesetting = self.database.typesetting_result();
         let nset = self.database.name_result();

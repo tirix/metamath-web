@@ -111,6 +111,7 @@ a:hover {
 
 pre {
     font-family: Inconsolata, 'Courier New', Courier, monospace;
+    margin: 0;
 }
 
 qed {
