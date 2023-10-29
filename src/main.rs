@@ -91,7 +91,7 @@ fn build_db(args: &ArgMatches) -> Result<Database, String> {
     println!("Starting up...");
     db.parse(start, data);
     db.scope_pass();
-    let diag = db.diag_notations(&[DiagnosticClass::Parse], |diag| { format!("{:?}", diag) });
+    let diag = db.diag_notations(&[DiagnosticClass::Parse]);
     if !diag.is_empty() { return Err(format!("{:?}", diag)); }
     db.typesetting_pass();
     db.grammar_pass();

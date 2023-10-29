@@ -1,9 +1,10 @@
+use metamath_knife::formula::Substitutions;
 use metamath_knife::formula::TypeCode;
 use metamath_knife::formula::Label;
 use metamath_knife::Database;
 use metamath_knife::Formula;
-use metamath_knife::parser::as_str;
-use metamath_knife::parser::StatementRef;
+use metamath_knife::statement::as_str;
+use metamath_knife::statement::StatementRef;
 use std::sync::Arc;
 use std::collections::HashMap;
 
@@ -59,20 +60,21 @@ impl StsDefinition {
         let nset = self.database.name_result();
         if scheme.is_identifier {
             (&scheme.formula == formula).then(|| scheme.subst.clone())
-        } else if let Some(subst) = formula.unify(&scheme.formula) {
-            let mut formatted_string = scheme.subst.clone();
-            for (label, subformula) in &*subst {
-                let sref = self.database.statement_by_label(*label)?;
-                let variable_atom = nset.var_atom(sref)?;
-                let variable_token = as_str(nset.atom_name(variable_atom));
-                let subformula_typecode = self.identifiers.get(&label)?;
-                let formatted_substring = self.format(*subformula_typecode, subformula).ok()?;
-                let pattern = format!("#{}#", variable_token).to_string();
-                formatted_string = formatted_string.replace(&pattern, &formatted_substring);
-            }
-            Some(formatted_string)
         } else {
-            None
+            let mut subst = Substitutions::new();
+            formula.unify(&scheme.formula, &mut subst).ok().and_then(|()| {
+                let mut formatted_string = scheme.subst.clone();
+                for (label, subformula) in &subst {
+                    let sref = self.database.statement_by_label(*label)?;
+                    let variable_atom = nset.var_atom(sref)?;
+                    let variable_token = as_str(nset.atom_name(variable_atom));
+                    let subformula_typecode = self.identifiers.get(&label)?;
+                    let formatted_substring = self.format(*subformula_typecode, subformula).ok()?;
+                    let pattern = format!("#{}#", variable_token).to_string();
+                    formatted_string = formatted_string.replace(&pattern, &formatted_substring);
+                }
+                Some(formatted_string)
+            })
         }
     }
 

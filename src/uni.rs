@@ -1,7 +1,7 @@
 //! Unicode Typesetting
 use metamath_knife::Database;
-use metamath_knife::parser::StatementRef;
-use metamath_knife::parser::as_str;
+use metamath_knife::statement::StatementRef;
+use metamath_knife::statement::as_str;
 use metamath_knife::formula::Formula;
 use std::fmt::Write;
 

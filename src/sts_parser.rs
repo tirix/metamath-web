@@ -15,8 +15,8 @@ use nom::{
     sequence::tuple,
     sequence::terminated,
 };
-use metamath_knife::parser::as_str;
-use metamath_knife::Database;
+use metamath_knife::{statement::as_str, grammar::FormulaToken};
+use metamath_knife::{Database, Span};
 use metamath_knife::formula::TypeCode;
 use regex::Regex;
 use crate::sts::{StsScheme, StsDefinition};
@@ -34,7 +34,7 @@ impl StsScheme {
         let all_typecodes = grammar.typecodes();
         let this_typecode = &[typecode];
         let typecodes : &[TypeCode] = if all_typecodes.contains(&typecode) { this_typecode } else { &all_typecodes };
-        let formula = grammar.parse_formula(&mut symbols.into_iter().skip(1), &typecodes, nset).map_err(|diag|
+        let formula = grammar.parse_formula(&mut symbols.into_iter().skip(1).map(|t| FormulaToken{ symbol: t, span: Span::NULL }), &typecodes, true, nset).map_err(|diag|
             format!("Could not parse formula: {:?} ({}) {}", diag, subst, as_str(nset.atom_name(typecode))))?;
         Ok(Self::new(is_identifier, typecode, formula, subst))
     }
