@@ -1,5 +1,5 @@
 body {
-    color: #112;
+    color: #001;
     font-family: Bitter,'Times New Roman', Times, serif;
     font-weight: 200;
     line-height: 30px;
@@ -102,7 +102,7 @@ a.step:hover {
 }
 
 a {
-    color: #112;
+    color: #001;
 }
 
 a:hover {
@@ -149,12 +149,32 @@ nav div {
     float: right;
 }
 
-ol.breadcrumb li, nav.typesettings li {
-    display: inline;
+ol {
+    counter-reset: item;
+}
+
+ol > li {
+    counter-increment: item;
+}
+
+ol > li::marker {
+    content: var(--chapter-number, "") counters(item, ".") ".\A0";
+}
+
+ol ol {
+    list-style: none;
+}
+
+ol ol > li::marker {
+    content: var(--chapter-number, "") counters(item, ".") ".\A0";
 }
 
 ol.breadcrumb, nav.typesettings ul {
     margin: 0;
+}
+
+ol.breadcrumb li, nav.typesettings li {
+    display: inline;
 }
 
 ol.breadcrumb li:not(:last-child)::after, nav.typesettings ul li:not(:last-child)::after {
@@ -165,7 +185,7 @@ ol.breadcrumb li:not(:last-child)::after, nav.typesettings ul li:not(:last-child
 mjx-container { margin: .3em 0em !important }
 mjx-container { float: left!important; width: inherit !important; text-align: left !important; }
 mjx-container { display: inline-block!important; }
-mjx-container a { color: #112 !important; cursor: pointer; }
+mjx-container a { color: #001 !important; cursor: pointer; }
 mjx-container a:hover { color: #4494FF !important; }
 mjx-container { display: inline-block!important; padding: 5px; }
 
