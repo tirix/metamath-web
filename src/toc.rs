@@ -8,7 +8,6 @@ use serde::Serialize;
 #[derive(Serialize)]
 pub(crate) struct TocInfo {
     nav: NavInfo,
-    explorer: String,
     name: String,
     explorer: String,
     link: LinkInfo,
