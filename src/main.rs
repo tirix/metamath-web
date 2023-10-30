@@ -12,7 +12,6 @@ use clap::App as ClapApp;
 use clap::Arg;
 use clap::ArgMatches;
 use metamath_knife::database::DbOptions;
-use metamath_knife::diag::DiagnosticClass;
 use metamath_knife::Database;
 use std::collections::HashMap;
 use std::convert::Infallible;
@@ -97,7 +96,7 @@ fn build_db(args: &ArgMatches) -> Result<Database, String> {
     println!("Starting up...");
     db.parse(start, data);
     db.scope_pass();
-    let diag = db.diag_notations(&[DiagnosticClass::Parse]);
+    let diag = db.diag_notations();
     if !diag.is_empty() {
         return Err(format!("{:?}", diag));
     }

@@ -38,9 +38,11 @@ impl StsScheme {
         };
         let formula = grammar
             .parse_formula(
-                &mut symbols.into_iter().skip(1).map(|t| FormulaToken {
-                    symbol: t,
-                    span: Span::NULL,
+                &mut symbols.into_iter().skip(1).map(|t| {
+                    Ok(FormulaToken {
+                        symbol: t,
+                        span: Span::NULL,
+                    })
                 }),
                 typecodes,
                 true,
