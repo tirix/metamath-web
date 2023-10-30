@@ -1,5 +1,3 @@
-use std::ops::Bound;
-
 use crate::statement::Renderer;
 use crate::statement::TypesettingInfo;
 use metamath_knife::outline::OutlineNodeRef;
@@ -108,13 +106,11 @@ impl Renderer {
     }
 
     fn get_comment(&self, node: &OutlineNodeRef) -> Option<String> {
-        let current_address = node.get_statement().address();
-        let next_statement = self
-            .db
-            .statements_range_address((Bound::Excluded(current_address), Bound::Unbounded))
-            .next()?;
-        let comment = next_statement.as_heading_comment()?;
-        Some(self.render_comment_new(&next_statement.segment().segment.buffer, comment.content))
+        let stmt = node.get_statement();
+        Some(self.render_comment_new(
+            &stmt.segment().segment.buffer,
+            stmt.as_heading_comment()?.content,
+        ))
     }
 
     pub fn render_toc(&self, explorer: String, chapter_ref: usize) -> Option<String> {
