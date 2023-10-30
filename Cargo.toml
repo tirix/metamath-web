@@ -9,7 +9,7 @@ repository = "https://github.com/tirix/metamath-web"
 edition = "2018"
 
 [dependencies]
-metamath-knife = { git = "https://github.com/metamath/metamath-knife", tag = "v0.3.6" }
+metamath-knife = { git = "https://github.com/metamath/metamath-knife", tag = "v0.3.7" }
 handlebars = "4.1.5"
 warp = "0.3.6"
 log = "0.4.14"

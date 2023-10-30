@@ -160,9 +160,11 @@ impl StsDefinition {
                         .database
                         .grammar_result()
                         .parse_formula(
-                            &mut tokens.map(|t| FormulaToken {
-                                symbol: nset.get_atom(&t),
-                                span: metamath_knife::Span::NULL,
+                            &mut tokens.map(|t| {
+                                Ok(FormulaToken {
+                                    symbol: nset.get_atom(&t),
+                                    span: metamath_knife::Span::NULL,
+                                })
                             }),
                             &[typecode],
                             false,

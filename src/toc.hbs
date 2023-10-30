@@ -37,6 +37,7 @@
 		</nav>
 		<hr />
 		<h2>Table of Contents - {{#each nav.breadcrumb}}{{index}}{{#if index}}.{{/if}}{{/each}} {{name}}</h2>
+		<p>{{comment}}</p>
 		<ol class="toc">
 			{{#each children}}
 				<li><a href="{{link}}" {{#if stmt_level}}class="label"{{/if}}>{{name}}</a>
