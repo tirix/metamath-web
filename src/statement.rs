@@ -28,6 +28,8 @@ struct StepInfo {
     hyps: Vec<String>,
     label: String,
     expr: String,
+    r#type: String,
+    link: bool,
 }
 
 #[derive(Serialize)]
@@ -250,6 +252,16 @@ impl Renderer {
         ]
     }
 
+    fn stmt_type(stmt: StatementRef) -> String {
+        match stmt.statement_type() {
+            StatementType::Provable => "theorem".to_string(),
+            StatementType::Axiom => "axiom".to_string(),
+            StatementType::Essential => "hyp".to_string(),
+            StatementType::Floating => "float".to_string(),
+            _ => "other".to_string(),
+        }
+    }
+
     pub(crate) fn render_comment(&self, comment: &str) -> String {
         let comment = comment.replace("\n\n", "</p>\n<p>");
         let comment = self.contrib_regex.replace_all(&comment, |caps: &Captures| {
@@ -426,6 +438,8 @@ impl Renderer {
                             id: ix.to_string(),
                             hyps: hyps.iter().map(usize::to_string).collect::<Vec<String>>(),
                             label: as_str(stmt.label()).to_string(),
+                            r#type: Renderer::stmt_type(stmt),
+                            link: stmt.is_assertion(),
                             expr: expression_renderer
                                 .clone()
                                 .render_expression(&proof_tree, cur, true)
@@ -450,6 +464,8 @@ impl Renderer {
                             id: cur.to_string(),
                             hyps: hyps.iter().map(usize::to_string).collect::<Vec<String>>(),
                             label: as_str(stmt.label()).to_string(),
+                            r#type: Renderer::stmt_type(stmt),
+                            link: stmt.is_assertion(),
                             expr: expression_renderer
                                 .clone()
                                 .render_expression(&proof_tree, cur, false)

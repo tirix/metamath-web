@@ -31,7 +31,7 @@
 			</ul>
 		</nav>
 		<hr />
-		<h2>{{statement_type}} <span class="label">{{label}}</span></h2>
+		<h2>{{statement_type}} <a href="#" class="label {{type}}">{{label}}</a></h2>
 		<p><strong>Description:</strong> {{comment}}</p>
 
 		<section class="statement">
@@ -46,14 +46,14 @@
 					<tr>
 						<td class="col-step"></td>
 						<td class="col-hyp">{{#if @first}}{{#if @last}}Hypothesis{{else}}Hypotheses{{/if}}{{/if}}</td>
-						<td class="col-ref" ><a href="{{label}}" class="label">{{label}}</a></td>
+						<td class="col-ref"><span class="hyp label">{{label}}</span></td>
 						<td class="col-expr">{{expr}}</td>
 					</tr>
 				{{/each}}
 				<tr>
 					<td class="col-step"></td>
 					<td class="col-hyp">Assertion</td>
-					<td class="col-ref" ><span class="label">{{label}}</span></td>
+					<td class="col-ref" ><a href="#" class="label {{type}}">{{label}}</a></td>
 					<td class="col-expr">{{expr}}</td>
 				</tr>
 			</table>
@@ -76,7 +76,7 @@
 							<td class="col-hyp">
 								{{#each hyps }}<a class="step" href="#{{this}}">{{this}}</a>{{#if (not @last)}} {{/if}}{{/each}}
 							</td>
-							<td class="col-ref" ><a href="{{label}}" class="label">{{label}}</a></td>
+							<td class="col-ref" >{{#if link}}<a href="{{label}}" class="label {{type}}">{{label}}</a>{{else}}<span class="label {{type}}">{{label}}</span>{{/if}}</td>
 							<td class="col-expr"><a name="{{id}}"></a>{{expr}}</td>
 						</tr>
 					{{/each}}
