@@ -1,3 +1,8 @@
+@font-face {
+    font-family: XITSMath-Regular;
+    src: url("/static/xits-math.woff");
+}
+  
 body {
     color: #001;
     font-family: Bitter,'Times New Roman', Times, serif;
@@ -183,6 +188,7 @@ ol.breadcrumb li:not(:last-child)::after, nav.typesettings ul li:not(:last-child
     margin: 0 10px;
 }
 
+.uni { font-family: Bitter,'Times New Roman', Times, serif, XITSMath-Regular }
 mjx-container { margin: .3em 0em !important }
 mjx-container { float: left!important; width: inherit !important; text-align: left !important; }
 mjx-container { display: inline-block!important; }

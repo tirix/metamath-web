@@ -17,7 +17,7 @@ impl UnicodeRenderer {
     }
 
     pub(crate) fn render_formula(&self, formula: &Formula) -> Result<String, String> {
-        let mut output: String = "⊢ ".into();
+        let mut output: String = "<span class=\"uni\"><span color=\"gray\">⊢</span> ".into();
         //        write!(output, "{} ", as_str(if use_provables
         let typesetting = self.database.typesetting_result();
         let nset = self.database.name_result();
@@ -34,11 +34,12 @@ impl UnicodeRenderer {
             )
             .unwrap();
         }
+        write!(output, "</span>").unwrap();
         Ok(output)
     }
 
     pub(crate) fn render_statement(&self, sref: &StatementRef) -> Result<String, String> {
-        let mut output: String = "".into();
+        let mut output: String = "<span class=\"uni\">".into();
         let typesetting = self.database.typesetting_result();
         for token in sref.math_iter() {
             write!(
@@ -52,6 +53,7 @@ impl UnicodeRenderer {
             )
             .unwrap();
         }
+        write!(output, "</span>").unwrap();
         Ok(output)
     }
 }
