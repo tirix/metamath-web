@@ -132,7 +132,8 @@ impl StsDefinition {
         };
         let mut mathml = self.format(typecode, formula)?;
         if !use_provables && typecode != grammar.provable_typecode() {
-            mathml = format!("<mrow><mo mathcolor=#CCC>{}</mo> {}</mrow>", 
+            mathml = format!(
+                "<mrow><mo mathcolor=#CCC>{}</mo> {}</mrow>",
                 as_str(self.database.name_result().atom_name(typecode)),
                 self.format(formula.get_typecode(), formula)?
             );

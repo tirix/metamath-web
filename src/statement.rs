@@ -87,10 +87,17 @@ impl ExpressionRenderer {
         use_provables: bool,
     ) -> Result<String, String> {
         match self {
-            ExpressionRenderer::Ascii => self.render_formula(&self.get_formula(sref, database, use_provables)?, database, use_provables),
+            ExpressionRenderer::Ascii => self.render_formula(
+                &self.get_formula(sref, database, use_provables)?,
+                database,
+                use_provables,
+            ),
             ExpressionRenderer::Unicode(uni) => uni.render_statement(sref),
             #[cfg(feature = "sts")]
-            ExpressionRenderer::Sts(sts) => sts.render_formula(&self.get_formula(sref, database, use_provables)?, use_provables)
+            ExpressionRenderer::Sts(sts) => sts.render_formula(
+                &self.get_formula(sref, database, use_provables)?,
+                use_provables,
+            ),
         }
     }
 
@@ -103,26 +110,28 @@ impl ExpressionRenderer {
     ) -> Result<Formula, String> {
         if use_provables {
             database
-            .stmt_parse_result()
-            .get_formula(sref)
-            .ok_or("Unknown statement".into()).cloned()
+                .stmt_parse_result()
+                .get_formula(sref)
+                .ok_or("Unknown statement".into())
+                .cloned()
         } else {
             let nset = database.name_result();
             let grammar = database.grammar_result();
             let mut tokens = sref.math_iter();
             let _typecode = nset.get_atom(&tokens.next().unwrap());
-            grammar.parse_formula(
-                &mut tokens.map(|t| {
-                    Ok(FormulaToken {
-                        symbol: nset.get_atom(&t),
-                        span: metamath_knife::Span::NULL,
-                    })
-                }),
-                &grammar.typecodes(),
-                true,
-                nset,
-            )
-            .map_err(|e| format!("Could not parse formula (GF): {}", e))
+            grammar
+                .parse_formula(
+                    &mut tokens.map(|t| {
+                        Ok(FormulaToken {
+                            symbol: nset.get_atom(&t),
+                            span: metamath_knife::Span::NULL,
+                        })
+                    }),
+                    &grammar.typecodes(),
+                    true,
+                    nset,
+                )
+                .map_err(|e| format!("Could not parse formula (GF): {}", e))
         }
     }
 
@@ -135,7 +144,11 @@ impl ExpressionRenderer {
         match self {
             ExpressionRenderer::Ascii => {
                 let s = format!("<pre>{}</pre>", formula.as_ref(database));
-                Ok(if use_provables { s.replace("wff ", " |- ") } else { s })
+                Ok(if use_provables {
+                    s.replace("wff ", " |- ")
+                } else {
+                    s
+                })
             }
             ExpressionRenderer::Unicode(uni) => uni.render_formula(formula),
             #[cfg(feature = "sts")]
