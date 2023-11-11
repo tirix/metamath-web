@@ -3,7 +3,6 @@ use metamath_knife::formula::Substitutions;
 use metamath_knife::formula::TypeCode;
 use metamath_knife::grammar::FormulaToken;
 use metamath_knife::statement::as_str;
-use metamath_knife::statement::StatementRef;
 use metamath_knife::Database;
 use metamath_knife::Formula;
 use metamath_knife::StatementType;
@@ -131,21 +130,16 @@ impl StsDefinition {
         } else {
             formula.get_typecode()
         };
+        let mut mathml = self.format(typecode, formula)?;
+        if !use_provables && typecode != grammar.provable_typecode() {
+            mathml = format!(
+                "<mrow><mo mathcolor=#CCC>{}</mo> {}</mrow>",
+                as_str(self.database.name_result().atom_name(typecode)),
+                self.format(formula.get_typecode(), formula)?
+            );
+        }
         let display = self.display.clone();
-        Ok(display.replace("###", &self.format(typecode, formula)?))
-    }
-
-    pub fn render_statement(
-        &self,
-        sref: &StatementRef,
-        use_provables: bool,
-    ) -> Result<String, String> {
-        let formula = self
-            .database
-            .stmt_parse_result()
-            .get_formula(sref)
-            .ok_or("Unknown statement")?;
-        self.render_formula(formula, use_provables)
+        Ok(display.replace("###", &mathml))
     }
 
     pub fn check(&self) {
