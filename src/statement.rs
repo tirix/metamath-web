@@ -139,12 +139,10 @@ impl ExpressionRenderer {
         &self,
         formula: &Formula,
         database: &Database,
-        use_provables: bool,
+        #[allow(unused_variables)] use_provables: bool,
     ) -> Result<String, String> {
         match self {
-            ExpressionRenderer::Ascii => {
-                Ok(format!("<pre>{}</pre>", formula.as_ref(database)))
-            }
+            ExpressionRenderer::Ascii => Ok(format!("<pre>{}</pre>", formula.as_ref(database))),
             ExpressionRenderer::Unicode(uni) => uni.render_formula(formula),
             #[cfg(feature = "sts")]
             ExpressionRenderer::Sts(sts) => sts.render_formula(formula, use_provables),
