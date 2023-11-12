@@ -118,7 +118,7 @@ impl ExpressionRenderer {
             let nset = database.name_result();
             let grammar = database.grammar_result();
             let mut tokens = sref.math_iter();
-            let _typecode = nset.get_atom(&tokens.next().unwrap());
+            let typecode = nset.get_atom(&tokens.next().unwrap());
             grammar
                 .parse_formula(
                     &mut tokens.map(|t| {
@@ -128,7 +128,7 @@ impl ExpressionRenderer {
                         })
                     }),
                     &grammar.typecodes(),
-                    true,
+                    typecode == grammar.provable_typecode(),
                     nset,
                 )
                 .map_err(|e| format!("Could not parse formula (GF): {}", e))
@@ -143,12 +143,7 @@ impl ExpressionRenderer {
     ) -> Result<String, String> {
         match self {
             ExpressionRenderer::Ascii => {
-                let s = format!("<pre>{}</pre>", formula.as_ref(database));
-                Ok(if use_provables {
-                    s.replace("wff ", " |- ")
-                } else {
-                    s
-                })
+                Ok(format!("<pre>{}</pre>", formula.as_ref(database)))
             }
             ExpressionRenderer::Unicode(uni) => uni.render_formula(formula),
             #[cfg(feature = "sts")]
