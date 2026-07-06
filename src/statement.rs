@@ -53,8 +53,6 @@ pub(crate) struct TypesettingInfo {
     name: &'static str,
 }
 
-trait Replacer: FnMut(&Captures) -> String + Sized + Clone {}
-
 #[derive(Clone)]
 pub struct Renderer {
     pub(crate) templates: Arc<Handlebars<'static>>,

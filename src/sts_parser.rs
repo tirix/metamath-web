@@ -73,7 +73,7 @@ enum Directive<'a> {
 fn is_mm_token(chr: char) -> bool {
     ('\x21'..='\x7E').contains(&chr) && chr != '$'
 }
-fn comment(input: &str) -> IResult<&str, Directive> {
+fn comment(input: &str) -> IResult<&str, Directive<'_>> {
     value(
         Directive::Comment,
         alt((
@@ -86,7 +86,7 @@ fn comment(input: &str) -> IResult<&str, Directive> {
 fn mathstring(input: &str) -> IResult<&str, Vec<&str>> {
     separated_list1(multispace1, take_while1(is_mm_token))(input)
 }
-fn scheme(input: &str) -> IResult<&str, Directive> {
+fn scheme(input: &str) -> IResult<&str, Directive<'_>> {
     map(
         tuple((
             map(alt((tag("$s"), tag("$i"))), |tag| tag == "$i"),
@@ -98,37 +98,37 @@ fn scheme(input: &str) -> IResult<&str, Directive> {
         },
     )(input)
 }
-fn typecodes(input: &str) -> IResult<&str, Directive> {
+fn typecodes(input: &str) -> IResult<&str, Directive<'_>> {
     map(
         delimited(tag("$u"), take_until("$."), tag("$.")),
         |_: &str| Directive::Comment,
     )(input)
 }
-fn command(input: &str) -> IResult<&str, Directive> {
+fn command(input: &str) -> IResult<&str, Directive<'_>> {
     map(
         delimited(tag("$c"), take_until("$."), tag("$.")),
         |command: &str| Directive::Command(command),
     )(input)
 }
-fn display(input: &str) -> IResult<&str, Directive> {
+fn display(input: &str) -> IResult<&str, Directive<'_>> {
     map(
         delimited(tag("$d"), take_until("$."), tag("$.")),
         |display: &str| Directive::Display(display),
     )(input)
 }
-fn inline(input: &str) -> IResult<&str, Directive> {
+fn inline(input: &str) -> IResult<&str, Directive<'_>> {
     map(
         delimited(tag("$t"), take_until("$."), tag("$.")),
         |inline: &str| Directive::Inline(inline),
     )(input)
 }
-fn header(input: &str) -> IResult<&str, Directive> {
+fn header(input: &str) -> IResult<&str, Directive<'_>> {
     map(
         delimited(tag("$h"), take_until("$."), tag("$.")),
         |header: &str| Directive::Header(header),
     )(input)
 }
-fn file(input: &str) -> IResult<&str, Vec<Directive>> {
+fn file(input: &str) -> IResult<&str, Vec<Directive<'_>>> {
     many0(alt((
         comment, scheme, typecodes, command, display, inline, header,
     )))(input)
